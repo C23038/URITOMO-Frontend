@@ -5,7 +5,8 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { 
   Video, VideoOff, Mic, MicOff, PhoneOff, Users, Settings, Bot,
   MessageSquare, Languages, Pin, ChevronRight, ChevronLeft,
-  MonitorUp, Paperclip, Smile, AlertTriangle, Clock, Send, Monitor, X
+  MonitorUp, Paperclip, Smile, AlertTriangle, Clock, Send, Monitor, X,
+  User as UserIcon
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { ProfileSettingsModal, SystemSettingsModal } from '../components/SettingsModals';
@@ -15,6 +16,7 @@ import {
   LiveKitRoom,
   VideoTrack,
   useTracks,
+  useParticipants,
   RoomAudioRenderer,
   useRoomContext,
   useLocalParticipant
@@ -33,15 +35,6 @@ const ensureMediaPermission = async () => {
 };
 
 // --- Types ---
-interface Participant {
-  id: string;
-  name: string;
-  isVideoOn: boolean;
-  isMuted: boolean;
-  isSpeaking?: boolean;
-  language?: 'ja' | 'ko';
-}
-
 interface TranslationLog {
   id: string;
   speaker: string;
@@ -84,6 +77,9 @@ function ActiveMeetingContent({
   const navigate = useNavigate();
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
+  
+  // 参加者リスト（リアルタイム更新）
+  const participants = useParticipants();
 
   // Tracks
   const tracks = useTracks([Track.Source.Camera, Track.Source.ScreenShare], { onlySubscribed: false });
@@ -92,6 +88,8 @@ function ActiveMeetingContent({
   const remoteTracks = tracks.filter(t => !t.participant.isLocal);
   
   const [currentUser] = useState(currentUserProp);
+  
+  // マイク・カメラの状態管理
   const [isMicOn, setIsMicOn] = useState(initialSettings?.isMicOn ?? true);
   const [isVideoOn, setIsVideoOn] = useState(initialSettings?.isVideoOn ?? true);
 
@@ -121,9 +119,7 @@ function ActiveMeetingContent({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [translationLogs, setTranslationLogs] = useState<TranslationLog[]>([]);
   const [termExplanations, setTermExplanations] = useState<TermExplanation[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
   const [meetingTitle] = useState('日韓プロジェクト会議');
-  const [startTime] = useState(new Date());
 
   // Profile Settings State
   const [showProfileSettings, setShowProfileSettings] = useState(false);
@@ -147,13 +143,16 @@ function ActiveMeetingContent({
     }
   }, []);
 
+  // --- Logic 2: State Sync with LiveKit ---
   useEffect(() => {
     if (localParticipant) {
       setIsScreenSharing(localParticipant.isScreenShareEnabled);
+      setIsMicOn(localParticipant.isMicrophoneEnabled);
+      setIsVideoOn(localParticipant.isCameraEnabled);
     }
-  }, [localParticipant, tracks]);
+  }, [localParticipant, tracks, localParticipant?.isMicrophoneEnabled, localParticipant?.isCameraEnabled]);
 
-  // --- Logic 2: Device Sync ---
+  // --- Logic 3: Device Sync ---
   useEffect(() => {
     if (!showSettings) return;
     const syncDevices = async () => {
@@ -168,9 +167,9 @@ function ActiveMeetingContent({
         let tm = room.getActiveDevice('audioinput') || selectedMicId;
         let tc = room.getActiveDevice('videoinput') || selectedCameraId;
         let ts = room.getActiveDevice('audiooutput') || selectedSpeakerId;
-        if (micList.length && !micList.find(d => d.deviceId === tm)) tm = micList[0].deviceId;
-        if (camList.length && !camList.find(d => d.deviceId === tc)) tc = camList[0].deviceId;
-        if (spkList.length && !spkList.find(d => d.deviceId === ts)) ts = spkList[0].deviceId;
+        if (micList.length && !micList.find(d => d.deviceId === tm)) tm = micList[0]?.deviceId;
+        if (camList.length && !camList.find(d => d.deviceId === tc)) tc = camList[0]?.deviceId;
+        if (spkList.length && !spkList.find(d => d.deviceId === ts)) ts = spkList[0]?.deviceId;
         setSelectedMicId(tm); setSelectedCameraId(tc); setSelectedSpeakerId(ts);
       }
     };
@@ -226,18 +225,31 @@ function ActiveMeetingContent({
   };
 
   const toggleMic = async () => {
+    if (!localParticipant) return;
     const newState = !isMicOn;
-    setIsMicOn(newState);
-    if (localParticipant) await localParticipant.setMicrophoneEnabled(newState);
+    try {
+      await localParticipant.setMicrophoneEnabled(newState);
+      setIsMicOn(newState);
+      toast(newState ? "マイクをオンにしました" : "マイクをミュートしました");
+    } catch (e) {
+      console.error(e);
+      toast.error("マイクの切り替えに失敗しました");
+    }
   };
 
   const toggleVideo = async () => {
+    if (!localParticipant) return;
     const newState = !isVideoOn;
-    setIsVideoOn(newState);
-    if (localParticipant) await localParticipant.setCameraEnabled(newState);
+    try {
+      await localParticipant.setCameraEnabled(newState);
+      setIsVideoOn(newState);
+      toast(newState ? "カメラをオンにしました" : "カメラをオフにしました");
+    } catch (e) {
+      console.error(e);
+      toast.error("カメラの切り替えに失敗しました");
+    }
   };
 
-  // --- Chat & Meeting Actions ---
   const handleSendChat = () => {
     if (chatInput.trim()) {
       setChatMessages([...chatMessages, { id: Date.now().toString(), sender: currentUser.name, message: chatInput, timestamp: new Date() }]);
@@ -255,18 +267,14 @@ function ActiveMeetingContent({
     input.click();
   };
 
-  // ★ここに追加: スタンプ選択ハンドラ
   const handleStickerSelect = (sticker: string) => {
     setChatMessages([...chatMessages, { id: Date.now().toString(), sender: currentUser.name, message: sticker, timestamp: new Date() }]);
     setShowStickerPicker(false);
   };
 
-  // ★ここに追加: 会議終了ハンドラ
   const handleEndMeeting = () => setShowEndMeetingConfirm(true);
   
-  // ★ここに追加: 会議終了確定ハンドラ
   const confirmEndMeeting = () => {
-    // 実際の議事録保存処理などがここに入ります
     navigate(`/minutes/${meetingId || Date.now()}`);
   };
 
@@ -288,10 +296,6 @@ function ActiveMeetingContent({
     };
     loadProfile();
 
-    setParticipants([
-      { id: '1', name: 'User A', isVideoOn: true, isMuted: false, language: 'ja' },
-      { id: '2', name: 'User B', isVideoOn: true, isMuted: false, language: 'ko' }
-    ]);
     setTranslationLogs([
       { id: '1', speaker: 'User A', originalText: 'プロジェクトの進捗について報告します', translatedText: '프로젝트 진행 상황에 대해 보고합니다', originalLang: 'ja', timestamp: new Date(Date.now() - 5000) },
       { id: '2', speaker: 'User B', originalText: '感사します。次のステップについて論議したいです', translatedText: 'ありがとうございます。次のステップについて議論したいです', originalLang: 'ko', timestamp: new Date(Date.now() - 3000) },
@@ -299,6 +303,7 @@ function ActiveMeetingContent({
     setTermExplanations([
       { id: '1', term: 'プロジェクトの進捗', explanation: 'プロジェクトがどれだけ進んでいるかを示す指標。', detectedFrom: 'User Aの発言', timestamp: new Date(Date.now() - 4000) },
     ]);
+    
     const timer = setInterval(() => setDuration(p => p + 1), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -375,13 +380,15 @@ function ActiveMeetingContent({
                   </motion.div>
                 )}
 
-                {/* Remote Participants */}
+                {/* Remote Participants (修正: カメラ映像のみ反転) */}
                 {remoteTracks.map((track) => (
                   <motion.div key={track.participant.identity + track.source} className="relative bg-gray-800 rounded-xl overflow-hidden border-2 border-gray-700 hover:border-yellow-400 transition-all">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <VideoTrack 
                         trackRef={track} 
-                        className={`w-full h-full ${track.source === Track.Source.ScreenShare ? 'object-contain bg-black' : 'object-cover'}`} 
+                        className={`w-full h-full ${track.source === Track.Source.ScreenShare ? 'object-contain bg-black' : 'object-cover'}`}
+                        // ▼▼▼ 修正: カメラ映像の場合のみ左右反転させるスタイルを追加 ▼▼▼
+                        style={track.source === Track.Source.Camera ? { transform: 'scaleX(-1)' } : undefined}
                       />
                     </div>
                     <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
@@ -406,7 +413,7 @@ function ActiveMeetingContent({
               <PanelResizeHandle className="w-2 bg-gray-700 hover:bg-yellow-400 transition-colors cursor-col-resize" />
               <Panel defaultSize={30} minSize={25} maxSize={50}>
                 <div className="h-full bg-white flex flex-col">
-                  {/* Uri-Tomo Header */}
+                  {/* Header */}
                   <div className="bg-gradient-to-r from-yellow-400 to-amber-400 px-4 py-3 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2"><div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><Bot className="h-5 w-5 text-yellow-600" /></div><div><h3 className="text-white font-bold text-sm">Uri-Tomo</h3><p className="text-yellow-100 text-xs">AI翻訳アシスタント</p></div></div>
@@ -414,7 +421,7 @@ function ActiveMeetingContent({
                     </div>
                   </div>
                   
-                  {/* Description Section */}
+                  {/* Description */}
                   <div className="border-b border-gray-200 bg-white max-h-48 overflow-y-auto flex-shrink-0">
                     <div className="sticky top-0 bg-white px-4 pt-4 pb-2 border-b border-gray-100"><div className="flex items-center gap-2"><Bot className="h-4 w-4 text-yellow-600" /><h4 className="font-bold text-gray-900 text-sm">Description</h4><span className="text-xs text-gray-500">({termExplanations.length}件の用語解説)</span></div></div>
                     <div className="p-4">
@@ -436,6 +443,18 @@ function ActiveMeetingContent({
 
                   {/* Tab Content */}
                   <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                    {/* Translation Tab */}
+                    {activeTab === 'translation' && (
+                      <div className="h-full overflow-y-auto p-4 space-y-4 min-h-0 bg-gradient-to-b from-yellow-50 to-white">
+                        {translationLogs.length === 0 ? <p className="text-center text-sm text-gray-500">翻訳待機中...</p> : translationLogs.map(log => (
+                          <div key={log.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                            <div className="flex justify-between mb-2"><span className="font-bold text-sm">{log.speaker}</span><span className="text-xs text-gray-500">{log.timestamp.toLocaleTimeString()}</span></div>
+                            <p className="text-sm font-bold mb-1">{log.translatedText}</p><p className="text-xs text-gray-500">{log.originalText}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Chat Tab */}
                     {activeTab === 'chat' && (
                       <div className="h-full flex flex-col">
@@ -451,27 +470,38 @@ function ActiveMeetingContent({
                           <Button onClick={handleSendChat}><Send className="h-4 w-4" /></Button>
                         </div>
                         {showStickerPicker && (
-                          <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-                            <div className="grid grid-cols-5 gap-2">{['👍', '👏', '😊', '❤️', '🎉', '✨', '💡', '🔥', '👌', '🙌'].map((s) => (<button key={s} onClick={() => handleStickerSelect(s)} className="text-2xl p-2 hover:bg-gray-200 rounded">{s}</button>))}</div>
-                          </div>
+                          <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0 grid grid-cols-5 gap-2">{['👍', '👏', '😊', '❤️', '🎉', '✨', '💡', '🔥', '👌', '🙌'].map(s => <button key={s} onClick={() => { handleStickerSelect(s); setShowStickerPicker(false); }} className="text-2xl p-2 hover:bg-gray-200 rounded">{s}</button>)}</div>
                         )}
                       </div>
                     )}
-                    {/* Translation Tab */}
-                    {activeTab === 'translation' && (
-                      <div className="h-full overflow-y-auto p-4 space-y-4 min-h-0">
-                        {translationLogs.map(log => (
-                          <div key={log.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-                            <div className="flex justify-between mb-2"><span className="font-bold text-sm">{log.speaker}</span><span className="text-xs text-gray-500">{log.timestamp.toLocaleTimeString()}</span></div>
-                            <p className="text-sm font-bold mb-1">{log.translatedText}</p><p className="text-xs text-gray-500">{log.originalText}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+
                     {/* Members Tab */}
                     {activeTab === 'members' && (
-                      <div className="h-full overflow-y-auto p-4 space-y-2 min-h-0">
-                        {participants.map(p => <div key={p.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded"><span className="text-sm">{p.name}</span></div>)}
+                      <div className="h-full overflow-y-auto p-4 min-h-0">
+                        {participants.length === 0 ? <p className="text-center text-gray-500 text-sm">参加者を取得中...</p> : (
+                          <div className="space-y-3">
+                            {participants.map((p) => (
+                              <div key={p.identity} className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${p.isLocal ? 'bg-gradient-to-r from-yellow-400 to-amber-500' : 'bg-gray-400'}`}>
+                                    {p.identity ? p.identity.charAt(0).toUpperCase() : <UserIcon className="h-5 w-5" />}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                      {p.identity} 
+                                      {p.isLocal && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">あなた</span>}
+                                    </p>
+                                    <p className="text-xs text-gray-500">{p.isLocal ? 'Local User' : 'Remote User'}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {p.isMicrophoneEnabled ? <Mic className="h-4 w-4 text-green-500" /> : <MicOff className="h-4 w-4 text-red-400" />}
+                                  {p.isCameraEnabled ? <Video className="h-4 w-4 text-green-500" /> : <VideoOff className="h-4 w-4 text-red-400" />}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -484,11 +514,11 @@ function ActiveMeetingContent({
 
       <footer className="bg-gray-800 border-t border-gray-700 px-6 py-4 flex-shrink-0">
         <div className="flex justify-center gap-4">
-          <Button onClick={toggleMic} className={`rounded-full w-12 h-12 ${isMicOn ? 'bg-gray-700' : 'bg-red-600'}`}>{isMicOn ? <Mic className="h-5 w-5 text-white" /> : <MicOff className="h-5 w-5 text-white" />}</Button>
-          <Button onClick={toggleVideo} className={`rounded-full w-12 h-12 ${isVideoOn ? 'bg-gray-700' : 'bg-red-600'}`}>{isVideoOn ? <Video className="h-5 w-5 text-white" /> : <VideoOff className="h-5 w-5 text-white" />}</Button>
-          <Button onClick={handleEndMeeting} className="rounded-full w-12 h-12 bg-red-600"><PhoneOff className="h-5 w-5 text-white" /></Button>
+          <Button onClick={toggleMic} className={`rounded-full w-12 h-12 ${isMicOn ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-700'}`}>{isMicOn ? <Mic className="h-5 w-5 text-white" /> : <MicOff className="h-5 w-5 text-white" />}</Button>
+          <Button onClick={toggleVideo} className={`rounded-full w-12 h-12 ${isVideoOn ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-700'}`}>{isVideoOn ? <Video className="h-5 w-5 text-white" /> : <VideoOff className="h-5 w-5 text-white" />}</Button>
+          <Button onClick={handleEndMeeting} className="rounded-full w-12 h-12 bg-red-600 hover:bg-red-700"><PhoneOff className="h-5 w-5 text-white" /></Button>
           <Button onClick={toggleScreenShare} className={`rounded-full w-12 h-12 ${isScreenSharing ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900' : 'bg-gray-700 hover:bg-gray-600'}`}><MonitorUp className={`h-5 w-5 ${isScreenSharing ? 'text-gray-900' : 'text-white'}`} /></Button>
-          <Button onClick={() => setShowSettings(true)} className="rounded-full w-12 h-12 bg-gray-700"><Settings className="h-5 w-5 text-white" /></Button>
+          <Button onClick={() => setShowSettings(true)} className="rounded-full w-12 h-12 bg-gray-700 hover:bg-gray-600"><Settings className="h-5 w-5 text-white" /></Button>
         </div>
       </footer>
 
@@ -510,7 +540,7 @@ function ActiveMeetingContent({
         </div>
       )}
 
-      {/* Settings Modal (Fixed: Empty Select Fix + Original UI) */}
+      {/* Settings Modal */}
       {showSettings && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center" onClick={() => setShowSettings(false)}>
           <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>

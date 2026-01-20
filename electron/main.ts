@@ -42,6 +42,13 @@ function createWindow() {
     desktopCapturer.getSources({ types: ['screen', 'window'] }).then((sources) => {
       console.log('[Main] Found sources:', sources.length);
       
+      // ★修正: ここで不要なウィンドウをフィルタリング
+      const cleanSources = sources.filter(source => 
+        source.name !== 'PDRSTYLEAGENT' && // 特定のアプリを除外
+        source.name !== 'Overlay' &&       // NVIDIAなどのオーバーレイも除外すると良い
+        source.id !== 'screen:0:0'         // 必要であればダミー画面も除外
+      );
+      
       // コールバックをグローバル変数に保存（Reactからの選択待ち）
       screenShareCallback = callback;
 
@@ -63,7 +70,6 @@ function createWindow() {
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
-    win.webContents.openDevTools()
   } else {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
