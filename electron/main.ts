@@ -125,7 +125,12 @@ app.whenReady().then(() => {
   });
 
   // 📝 프론트엔드 로그를 터미널(메인 프로세스)에 출력하기 위한 리스너
-  ipcMain.on('log', (_, message) => {
-    console.log('\x1b[36m%s\x1b[0m', `[Renderer Log] ${message}`);
+  ipcMain.on('log', (_, data) => {
+    if (typeof data === 'string') {
+      console.log('\x1b[36m%s\x1b[0m', `[Renderer Log] ${data}`);
+    } else {
+      console.log('\x1b[36m%s\x1b[0m', `[Renderer API Log]`);
+      console.dir(data, { depth: null, colors: true });
+    }
   });
 })

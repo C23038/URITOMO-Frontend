@@ -45,11 +45,11 @@ export default defineConfig(({ command }) => ({
         target: 'http://192.168.1.33:8000',
         changeOrigin: true,
       },
-      '/example': {
+      '/meeting': {
         target: 'http://192.168.1.33:8000',
         changeOrigin: true,
       },
-      '/meeting': {
+      '/example': {
         target: 'http://192.168.1.33:8000',
         changeOrigin: true,
       },

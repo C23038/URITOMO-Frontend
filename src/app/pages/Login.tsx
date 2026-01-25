@@ -107,18 +107,21 @@ export function Login({ onLogin }: LoginProps) {
   const handleSignUp = async () => {
     if (!newAccountEmail || !newAccountPassword || newAccountPassword !== newAccountConfirmPassword) return;
 
+    const signupData = {
+      name: newAccountName,
+      email: newAccountEmail,
+      password: newAccountPassword
+    };
+
     console.group('📝 [Sign Up Attempt]');
-    console.log('👤 Name:', newAccountName);
-    console.log('📧 Email:', newAccountEmail);
+    console.log('🌐 Endpoint: POST /signup');
+    console.log('📦 Request Body:', signupData);
+    console.log('📄 JSON String:', JSON.stringify(signupData));
     console.log('⏱️ Timestamp:', new Date().toISOString());
     console.groupEnd();
 
     try {
-      const response = await authApi.signup({
-        name: newAccountName,
-        email: newAccountEmail,
-        password: newAccountPassword
-      });
+      const response = await authApi.signup(signupData);
 
       console.group('✅ [Sign Up Success]');
       console.log('🎟️ Token received:', response.access_token ? 'Yes' : 'No');

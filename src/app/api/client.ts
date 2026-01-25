@@ -28,14 +28,21 @@ apiClient.interceptors.request.use(
     console.log('📍 Full URL:', `${config.baseURL}${config.url}`);
     console.log('📋 Headers:', config.headers);
     if (config.data) {
-      console.log('📦 Request Data:', config.data);
+      console.log('📦 Request Data (Object):', config.data);
+      console.log('📝 Request Data (Raw JSON):', JSON.stringify(config.data, null, 2));
     }
     console.log('⏱️ Timestamp:', new Date().toISOString());
     console.groupEnd();
 
     // 📝 터미널(메인 프로세스) 로깅 추가
     if ((window as any).electron?.sendSignal) {
-      (window as any).electron.sendSignal('log', `${config.method?.toUpperCase()} ${config.url}`);
+      (window as any).electron.sendSignal('log', {
+        type: 'REQUEST',
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        headers: config.headers,
+        data: config.data
+      });
     }
 
     return config;
@@ -60,7 +67,13 @@ apiClient.interceptors.response.use(
 
     // 📝 터미널(메인 프로세스) 로깅 추가
     if ((window as any).electron?.sendSignal) {
-      (window as any).electron.sendSignal('log', `SUCCESS: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
+      (window as any).electron.sendSignal('log', {
+        type: 'RESPONSE_SUCCESS',
+        status: response.status,
+        method: response.config.method?.toUpperCase(),
+        url: response.config.url,
+        data: response.data
+      });
     }
 
     // 응답 데이터만 바로 반환하여 사용하기 편하게 함
@@ -120,7 +133,14 @@ apiClient.interceptors.response.use(
 
     // 📝 터미널(메인 프로세스) 로깅 추가
     if ((window as any).electron?.sendSignal) {
-      (window as any).electron.sendSignal('log', `ERROR: ${error.response?.status || 'Network Error'} ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+      (window as any).electron.sendSignal('log', {
+        type: 'RESPONSE_ERROR',
+        status: error.response?.status,
+        method: error.config?.method?.toUpperCase(),
+        url: error.config?.url,
+        error: error.message,
+        data: error.response?.data
+      });
     }
 
     return Promise.reject(error);
