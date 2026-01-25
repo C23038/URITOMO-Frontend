@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://10.0.255.80:8000';
+const baseURL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'http://10.0.255.80:8000';
 
 // 1. Axios 인스턴스 생성
 const apiClient: AxiosInstance = axios.create({
@@ -31,6 +31,11 @@ apiClient.interceptors.request.use(
     console.log('⏱️ Timestamp:', new Date().toISOString());
     console.groupEnd();
 
+    // 📝 터미널(메인 프로세스) 로깅 추가
+    if ((window as any).electron?.sendSignal) {
+      (window as any).electron.sendSignal('log', `${config.method?.toUpperCase()} ${config.url}`);
+    }
+
     return config;
   },
   (error) => {
@@ -50,6 +55,11 @@ apiClient.interceptors.response.use(
     console.log('📦 Response Data:', response.data);
     console.log('⏱️ Timestamp:', new Date().toISOString());
     console.groupEnd();
+
+    // 📝 터미널(메인 프로세스) 로깅 추가
+    if ((window as any).electron?.sendSignal) {
+      (window as any).electron.sendSignal('log', `SUCCESS: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
+    }
 
     // 응답 데이터만 바로 반환하여 사용하기 편하게 함
     return response.data;
@@ -105,6 +115,11 @@ apiClient.interceptors.response.use(
 
     console.log('⏱️ Timestamp:', new Date().toISOString());
     console.groupEnd();
+
+    // 📝 터미널(메인 프로세스) 로깅 추가
+    if ((window as any).electron?.sendSignal) {
+      (window as any).electron.sendSignal('log', `ERROR: ${error.response?.status || 'Network Error'} ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+    }
 
     return Promise.reject(error);
   }

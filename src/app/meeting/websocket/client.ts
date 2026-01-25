@@ -11,7 +11,7 @@ export class MeetingSocket {
 
     constructor(sessionId: string) {
         // Determine WebSocket URL based on environment or default
-        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://10.0.255.80:8000';
+        const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'http://10.0.255.80:8000';
         const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
         const token = localStorage.getItem('uri-tomo-token');
 
