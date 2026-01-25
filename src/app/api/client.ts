@@ -1,7 +1,9 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://10.0.255.80:8000';
+const baseURL = import.meta.env.DEV
+  ? ''
+  : (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || '');
 
 // 1. Axios 인스턴스 생성
 const apiClient: AxiosInstance = axios.create({
@@ -26,10 +28,22 @@ apiClient.interceptors.request.use(
     console.log('📍 Full URL:', `${config.baseURL}${config.url}`);
     console.log('📋 Headers:', config.headers);
     if (config.data) {
-      console.log('📦 Request Data:', config.data);
+      console.log('📦 Request Data (Object):', config.data);
+      console.log('📝 Request Data (Raw JSON):', JSON.stringify(config.data, null, 2));
     }
     console.log('⏱️ Timestamp:', new Date().toISOString());
     console.groupEnd();
+
+    // 📝 터미널(메인 프로세스) 로깅 추가
+    if ((window as any).electron?.sendSignal) {
+      (window as any).electron.sendSignal('log', {
+        type: 'REQUEST',
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        headers: config.headers,
+        data: config.data
+      });
+    }
 
     return config;
   },
@@ -50,6 +64,17 @@ apiClient.interceptors.response.use(
     console.log('📦 Response Data:', response.data);
     console.log('⏱️ Timestamp:', new Date().toISOString());
     console.groupEnd();
+
+    // 📝 터미널(메인 프로세스) 로깅 추가
+    if ((window as any).electron?.sendSignal) {
+      (window as any).electron.sendSignal('log', {
+        type: 'RESPONSE_SUCCESS',
+        status: response.status,
+        method: response.config.method?.toUpperCase(),
+        url: response.config.url,
+        data: response.data
+      });
+    }
 
     // 응답 데이터만 바로 반환하여 사용하기 편하게 함
     return response.data;
@@ -105,6 +130,18 @@ apiClient.interceptors.response.use(
 
     console.log('⏱️ Timestamp:', new Date().toISOString());
     console.groupEnd();
+
+    // 📝 터미널(메인 프로세스) 로깅 추가
+    if ((window as any).electron?.sendSignal) {
+      (window as any).electron.sendSignal('log', {
+        type: 'RESPONSE_ERROR',
+        status: error.response?.status,
+        method: error.config?.method?.toUpperCase(),
+        url: error.config?.url,
+        error: error.message,
+        data: error.response?.data
+      });
+    }
 
     return Promise.reject(error);
   }

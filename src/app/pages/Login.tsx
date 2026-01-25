@@ -31,28 +31,45 @@ export function Login({ onLogin }: LoginProps) {
   const [findAccountEmail, setFindAccountEmail] = useState('');
 
   // 공통: 로그인 성공 처리 핸들러
-  const handleAuthSuccess = (response: any) => {
-    // 1. 토큰 및 유저 정보 저장
+  const handleAuthSuccess = async (response: any) => {
+    // 1. 토큰 저장
     localStorage.setItem('uri-tomo-token', response.access_token);
-    // 백엔드 응답의 user 객체 구조에 따라 필드명(name/display_name) 조정 필요
-    const userName = response.user.name || response.user.display_name;
 
-    localStorage.setItem('uri-tomo-user-profile', JSON.stringify({
-      name: userName,
-      email: response.user.email,
-      avatar: response.user.picture
-    }));
+    let profile = response.user;
 
-    // 2. 환영 메시지 (다국어 처리)
-    const welcomeMsg = {
-      ja: `${userName}さん、ようこそ！`,
-      ko: `${userName}님 환영합니다!`,
-      en: `Welcome, ${userName}!`
-    };
-    toast.success(welcomeMsg[language] || welcomeMsg.en);
+    // 만약 응답에 user 정보가 없고 user_id만 있는 경우, /me 호출하여 가져옴
+    if (!profile && response.user_id) {
+      try {
+        profile = await authApi.getMe();
+      } catch (e) {
+        console.error('Failed to fetch user profile after login:', e);
+        profile = {
+          id: response.user_id,
+          email: email || newAccountEmail || 'user@uri-tomo.local',
+          display_name: email?.split('@')[0] || newAccountEmail?.split('@')[0] || 'User'
+        };
+      }
+    }
 
-    // 3. 상위 컴포넌트에 알림
-    onLogin(response.user.email);
+    if (profile) {
+      const userName = profile.name || profile.display_name;
+      localStorage.setItem('uri-tomo-user-profile', JSON.stringify({
+        name: userName,
+        email: profile.email,
+        avatar: profile.picture
+      }));
+
+      // 2. 환영 메시지 (다국어 처리)
+      const welcomeMsg = {
+        ja: `${userName}さん、ようこそ！`,
+        ko: `${userName}님 환영합니다!`,
+        en: `Welcome, ${userName}!`
+      };
+      toast.success(welcomeMsg[language] || welcomeMsg.en);
+
+      // 3. 상위 컴포넌트에 알림
+      onLogin(profile.email);
+    }
   };
 
   // [수정됨] 일반 이메일 로그인 핸들러
@@ -70,12 +87,12 @@ export function Login({ onLogin }: LoginProps) {
       const response = await authApi.login({ email, password });
 
       console.group('✅ [Login Success]');
-      console.log('👤 User:', response.user);
       console.log('🎟️ Token received:', response.access_token ? 'Yes' : 'No');
+      console.log('🆔 User ID:', response.user_id);
       console.log('⏱️ Timestamp:', new Date().toISOString());
       console.groupEnd();
 
-      handleAuthSuccess(response);
+      await handleAuthSuccess(response);
     } catch (error) {
       console.group('❌ [Login Failed]');
       console.error('📧 Email:', email);
@@ -90,27 +107,30 @@ export function Login({ onLogin }: LoginProps) {
   const handleSignUp = async () => {
     if (!newAccountEmail || !newAccountPassword || newAccountPassword !== newAccountConfirmPassword) return;
 
+    const signupData = {
+      name: newAccountName,
+      email: newAccountEmail,
+      password: newAccountPassword
+    };
+
     console.group('📝 [Sign Up Attempt]');
-    console.log('👤 Name:', newAccountName);
-    console.log('📧 Email:', newAccountEmail);
+    console.log('🌐 Endpoint: POST /signup');
+    console.log('📦 Request Body:', signupData);
+    console.log('📄 JSON String:', JSON.stringify(signupData));
     console.log('⏱️ Timestamp:', new Date().toISOString());
     console.groupEnd();
 
     try {
-      const response = await authApi.signup({
-        name: newAccountName,
-        email: newAccountEmail,
-        password: newAccountPassword
-      });
+      const response = await authApi.signup(signupData);
 
       console.group('✅ [Sign Up Success]');
-      console.log('👤 User:', response.user);
       console.log('🎟️ Token received:', response.access_token ? 'Yes' : 'No');
+      console.log('🆔 User ID:', response.user_id);
       console.log('⏱️ Timestamp:', new Date().toISOString());
       console.groupEnd();
 
       // 회원가입 성공 후 자동 로그인 처리
-      handleAuthSuccess(response);
+      await handleAuthSuccess(response);
       setIsCreatingAccount(false);
 
     } catch (error) {
