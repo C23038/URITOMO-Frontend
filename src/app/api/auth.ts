@@ -18,7 +18,7 @@ export const authApi = {
    * GET /auth/me
    */
   getMe: async (): Promise<UserProfile> => {
-    return apiClient.get<any, UserProfile>('/me');
+    return apiClient.get<any, UserProfile>('/example/token/me');
   },
 
   /**

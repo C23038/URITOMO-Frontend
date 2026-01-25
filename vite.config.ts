@@ -33,21 +33,29 @@ export default defineConfig(({ command }) => ({
   },
   server: {
     proxy: {
-      // API 요청을 백엔드 서버로 프록시
       '/signup': {
         target: 'http://192.168.1.33:8000',
         changeOrigin: true,
-        secure: false,
       },
       '/general_login': {
         target: 'http://192.168.1.33:8000',
         changeOrigin: true,
-        secure: false,
       },
       '/auth': {
         target: 'http://192.168.1.33:8000',
         changeOrigin: true,
-        secure: false,
+      },
+      '/example': {
+        target: 'http://192.168.1.33:8000',
+        changeOrigin: true,
+      },
+      '/meeting': {
+        target: 'http://192.168.1.33:8000',
+        changeOrigin: true,
+      },
+      '/user': {
+        target: 'http://192.168.1.33:8000',
+        changeOrigin: true,
       },
     }
   },
