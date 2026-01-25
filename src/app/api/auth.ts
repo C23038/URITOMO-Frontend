@@ -10,7 +10,7 @@ export const authApi = {
    */
   loginWithGoogle: async (idToken: string): Promise<AuthResponse> => {
     // axios interceptor 덕분에 .data를 안 붙여도 바로 AuthResponse 타입으로 반환됨
-    return apiClient.post<AuthResponse>('/google', { token: idToken });
+    return apiClient.post<any, AuthResponse>('/google', { token: idToken });
   },
 
   /**
@@ -18,7 +18,7 @@ export const authApi = {
    * GET /auth/me
    */
   getMe: async (): Promise<UserProfile> => {
-    return apiClient.get<UserProfile>('/me');
+    return apiClient.get<any, UserProfile>('/me');
   },
 
   /**
@@ -26,7 +26,7 @@ export const authApi = {
    * POST /auth/refresh
    */
   refreshToken: async (): Promise<AuthResponse> => {
-    return apiClient.post<AuthResponse>('/refresh');
+    return apiClient.post<any, AuthResponse>('/refresh');
   },
 
   // 일반 로그인
