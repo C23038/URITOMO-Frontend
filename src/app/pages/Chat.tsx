@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { ProfileSettingsModal, SystemSettingsModal } from '../components/SettingsModals';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface Message {
   id: string;
@@ -48,7 +49,7 @@ export function Chat() {
   const [editedUserName, setEditedUserName] = useState('');
   const [editedUserAvatar, setEditedUserAvatar] = useState('');
   const [editedAvatarType, setEditedAvatarType] = useState<'emoji' | 'image' | 'none'>('none');
-  const [systemLanguage, setSystemLanguage] = useState<'ja' | 'ko' | 'en'>('ja');
+  const { t, language: systemLanguage, setSystemLanguage } = useTranslation();
 
   // Listen for sidebar button clicks
   useEffect(() => {
@@ -116,7 +117,7 @@ export function Chat() {
     }
 
     if (savedLanguage) {
-      setSystemLanguage(savedLanguage as 'ja' | 'ko' | 'en');
+      // setSystemLanguage(savedLanguage as 'ja' | 'ko' | 'en'); // Handled by useTranslation
     }
 
     // Load contact info
@@ -251,7 +252,7 @@ export function Chat() {
               type="text"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="キーワード検索"
+              placeholder={t('keywordSearch')}
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent w-64"
             />
           </div>
@@ -304,7 +305,7 @@ export function Chat() {
                   <span className="text-xs text-gray-400">
                     {message.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <span className="text-xs text-gray-500 font-semibold">あなた</span>
+                  <span className="text-xs text-gray-500 font-semibold">{t('you')}</span>
                 </div>
                 <div className="bg-blue-500 text-white rounded-lg px-4 py-3 shadow-sm">
                   <p className="text-sm">{message.text}</p>
@@ -328,7 +329,7 @@ export function Chat() {
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <Smile className="h-4 w-4 text-yellow-600" />
-                スタンプを選択
+                {t('selectSticker')}
               </h4>
               <button
                 onClick={() => setShowStickerPicker(false)}
@@ -343,7 +344,7 @@ export function Chat() {
                   key={sticker}
                   onClick={() => handleStickerSelect(sticker)}
                   className="text-3xl p-3 rounded-lg hover:bg-yellow-200 transition-all transform hover:scale-110 active:scale-95"
-                  title="スタンプを送信"
+                  title={t('sendSticker')}
                 >
                   {sticker}
                 </button>
@@ -357,7 +358,7 @@ export function Chat() {
           <button
             onClick={handleFileAttach}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="ファイルを添付"
+            title={t('attachFile')}
           >
             <Paperclip className="h-5 w-5 text-gray-600" />
           </button>
@@ -369,7 +370,7 @@ export function Chat() {
               ? 'bg-yellow-200 text-yellow-700'
               : 'hover:bg-gray-100 text-gray-600'
               }`}
-            title="スタンプを選択"
+            title={t('selectSticker')}
           >
             <Smile className="h-5 w-5" />
           </button>
@@ -378,7 +379,7 @@ export function Chat() {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="メッセージを入力..."
+            placeholder={t('typeMessage')}
             className="flex-1 border-gray-300 focus:ring-2 focus:ring-yellow-400"
           />
           <button
@@ -391,7 +392,7 @@ export function Chat() {
         </div>
         <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
           <Bot className="h-3 w-3 text-yellow-600" />
-          AI翻訳機能でメッセージを自動翻訳します
+          {t('aiTranslateFeature')}
         </p>
       </div>
 
@@ -406,7 +407,6 @@ export function Chat() {
         editedUserName={editedUserName}
         editedUserAvatar={editedUserAvatar}
         editedAvatarType={editedAvatarType}
-        systemLanguage={systemLanguage}
         onNameChange={setEditedUserName}
         onAvatarChange={setEditedUserAvatar}
         onAvatarTypeChange={setEditedAvatarType}
@@ -432,7 +432,7 @@ export function Chat() {
           };
           localStorage.setItem('uri-tomo-user-profile', JSON.stringify(profile));
           window.dispatchEvent(new Event('profile-updated'));
-          toast.success('プロフィールが更新されました');
+          toast.success(t('profileUpdated'));
           setShowProfileSettings(false);
         }}
       />
@@ -441,8 +441,6 @@ export function Chat() {
       <SystemSettingsModal
         isOpen={showSystemSettings}
         onClose={() => setShowSystemSettings(false)}
-        systemLanguage={systemLanguage}
-        onLanguageChange={setSystemLanguage}
       />
     </div>
   );

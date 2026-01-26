@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface Room {
   id: string;
@@ -28,6 +29,7 @@ export function Sidebar({ onLogout, userName, userEmail, userAvatar, avatarType,
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isRoomDialogOpen, setIsRoomDialogOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
+  const { t } = useTranslation();
 
   const loadRooms = () => {
     // Load rooms from localStorage
@@ -99,7 +101,7 @@ export function Sidebar({ onLogout, userName, userEmail, userAvatar, avatarType,
           onClick={() => navigate('/home')}
         >
           <Users className="h-5 w-5 text-yellow-600" />
-          <span className="font-medium">Contact</span>
+          <span className="font-medium">{t('contact')}</span>
         </button>
       </div>
 
@@ -133,28 +135,28 @@ export function Sidebar({ onLogout, userName, userEmail, userAvatar, avatarType,
           onClick={onSettingsClick}
         >
           <Settings className="h-5 w-5" />
-          <span className="font-medium">設定</span>
+          <span className="font-medium">{t('settings')}</span>
         </button>
 
         <Dialog open={isRoomDialogOpen} onOpenChange={setIsRoomDialogOpen}>
           <DialogTrigger asChild>
             <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-yellow-100 text-yellow-700 transition-colors">
               <Plus className="h-5 w-5" />
-              <span className="font-medium">ルーム追加</span>
+              <span className="font-medium">{t('addRoom')}</span>
             </button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>新しいルームを作成</DialogTitle>
+              <DialogTitle>{t('createNewRoom')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
-                <Label htmlFor="roomName">ルーム名</Label>
+                <Label htmlFor="roomName">{t('roomName')}</Label>
                 <Input
                   id="roomName"
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
-                  placeholder="ルーム名 입력"
+                  placeholder={t('enterRoomName')}
                   className="mt-2"
                 />
               </div>
@@ -163,7 +165,7 @@ export function Sidebar({ onLogout, userName, userEmail, userAvatar, avatarType,
                 className="w-full bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white"
               >
                 <Plus className="h-5 w-5 mr-2" />
-                作成
+                {t('create')}
               </Button>
             </div>
           </DialogContent>
@@ -174,7 +176,7 @@ export function Sidebar({ onLogout, userName, userEmail, userAvatar, avatarType,
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
         >
           <LogOut className="h-5 w-5" />
-          <span className="font-medium">ログ아웃</span>
+          <span className="font-medium">{t('logout')}</span>
         </button>
       </div>
     </aside>
