@@ -184,9 +184,18 @@ export function MeetingRoom() {
       console.error('Failed to add member:', error);
 
       if (error.response?.status === 404) {
-        toast.error(t('emailNotFound') || 'そのメールアドレスのユーザーが見つかりませんでした');
+        const detail = error.response?.data?.detail || '';
+        if (detail.includes('User')) {
+          toast.error(t('emailNotFound') || 'そのメールアドレスのユーザーが見つかりませんでした');
+        } else if (detail.includes('Room')) {
+          toast.error(t('roomNotFound') || 'ルームが見つかりませんでした');
+        } else {
+          toast.error(t('notFound') || 'ユーザーまたはルームが見つかりませんでした');
+        }
       } else if (error.response?.status === 409) {
         toast.error(t('memberAlreadyExists') || 'このメンバーはすでにルームに存在します');
+      } else if (error.response?.status === 403) {
+        toast.error(t('noPermission') || 'メンバーを追加する権限がありません');
       } else {
         toast.error(t('memberAddFailed') || 'メンバーの追加に失敗しました');
       }
