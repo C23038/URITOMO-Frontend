@@ -1,71 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, UserPlus, Globe, Edit3, Trash2, MessageCircle, MoreVertical, Mail, User, Bot, Settings, Plus, LogOut, Mic, Video, Monitor, Languages, Image as ImageIcon, ChevronRight } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Users, UserPlus, Edit3, Trash2, MessageCircle, MoreVertical, User, Bot, Settings, Plus, LogOut, Mic, Video, Monitor, Languages, Image as ImageIcon, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '../components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { PageTransition } from '../components/PageTransition';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { ProfileSettingsModal, SystemSettingsModal } from '../components/SettingsModals';
 import { userApi } from '../api/user';
 import { MainDataResponse } from '../api/types';
-
-// Simple translation helper
-const t = (lang: 'ja' | 'ko' | 'en', key: string): string => {
-  const translations: Record<string, Record<'ja' | 'ko' | 'en', string>> = {
-    contacts: { ja: '連絡先', ko: '연락처', en: 'Contacts' },
-    add: { ja: '追加', ko: '추가', en: 'Add' },
-    edit: { ja: '編集', ko: '편집', en: 'Edit' },
-    delete: { ja: '削除', ko: '삭제', en: 'Delete' },
-    cancel: { ja: 'キャンセル', ko: '취', en: 'Cancel' },
-    save: { ja: '保存', ko: '저장', en: 'Save' },
-    profileSettings: { ja: 'プロフィール設定', ko: '프로필 설정', en: 'Profile Settings' },
-    systemSettings: { ja: 'システム設定', ko: '시스템 설정', en: 'System Settings' },
-    avatar: { ja: 'アバター', ko: '아바타', en: 'Avatar' },
-    emoji: { ja: '絵文字', ko: '이모지', en: 'Emoji' },
-    image: { ja: '画像', ko: '이미지', en: 'Image' },
-    none: { ja: 'なし', ko: '없음', en: 'None' },
-    name: { ja: '名前', ko: '이름', en: 'Name' },
-    email: { ja: 'メールアドレス', ko: '이메일 주소', en: 'Email Address' },
-    addFriend: { ja: '友達を追加', ko: '친구 추가', en: 'Add Friend' },
-    editNickname: { ja: 'ニックネーム編集', ko: '닉네임 편집', en: 'Edit Nickname' },
-    contactName: { ja: '連絡先名', ko: '연락처 이름', en: 'Contact Name' },
-    nickname: { ja: 'ニックネーム', ko: '닉네임', en: 'Nickname' },
-    deleteContact: { ja: '連絡先を削除しますか？', ko: '연락처를 삭제하시겠습니까?', en: 'Delete Contact?' },
-    deleteContactDesc: { ja: 'を連絡先から削除します。この操作は取り消せません。', ko: '을(를) 연락처에서 삭제합니다.  작업은 취소할 수 없습니다.', en: 'will be removed from contacts. This action cannot be undone.' },
-    languageSettings: { ja: '言語設定', ko: '언어 설정', en: 'Language Settings' },
-    audioSettings: { ja: 'オーディオ設定', ko: '오디오 설정', en: 'Audio Settings' },
-    videoSettings: { ja: 'ビデオ設定', ko: '비디오 설정', en: 'Video Settings' },
-    translationSettings: { ja: 'Uri-Tomo AI翻訳設定', ko: 'Uri-Tomo AI 번역 설정', en: 'Uri-Tomo AI Translation' },
-    generalSettings: { ja: '一般設定', ko: '일반 설정', en: 'General Settings' },
-    microphone: { ja: 'マイク', ko: '마이크', en: 'Microphone' },
-    speaker: { ja: 'スピーカー', ko: '스피커', en: 'Speaker' },
-    camera: { ja: 'カメラ', ko: '카메라', en: 'Camera' },
-    resolution: { ja: '解像度', ko: '해상도', en: 'Resolution' },
-    noiseCancellation: { ja: 'ノイズキャンセル', ko: '노이즈 제거', en: 'Noise Cancellation' },
-    beautyFilter: { ja: 'ビューティーフィルター', ko: '뷰티 필터', en: 'Beauty Filter' },
-    realtimeTranslation: { ja: 'リアルタイム翻訳', ko: '실시간 번역', en: 'Realtime Translation' },
-    termDescription: { ja: '用語解説', ko: '용어 설명', en: 'Term Description' },
-    translationPair: { ja: '翻訳言語ペア', ko: '번역 언어 쌍', en: 'Translation Pair' },
-    autoRecord: { ja: '会議の自動録画', ko: '회의 자동 녹화', en: 'Auto Record Meeting' },
-    notificationSound: { ja: '通知音', ko: '알림음', en: 'Notification Sound' },
-    clickToChange: { ja: 'クリックして変更', ko: '클릭하여 변경', en: 'Click to change' },
-    chooseEmoji: { ja: '絵文字を選択', ko: '이모지 선택', en: 'Choose Emoji' },
-    selectFromEmojis: { ja: '絵文字から選択します', ko: '이모지에서 선택합니다', en: 'Select from emojis' },
-    uploadImage: { ja: '画像をアップロード', ko: '이미지 업로드', en: 'Upload Image' },
-    uploadYourPhoto: { ja: '写真をアップロードします', ko: '사진을 업로드합니다', en: 'Upload your photo' },
-    removeAvatar: { ja: 'アバターを削除', ko: '아바타 제거', en: 'Remove Avatar' },
-    useDefaultIcon: { ja: 'デフォルトアイコンを使用', ko: '기본 아이콘 사용', en: 'Use default icon' },
-    selectEmoji: { ja: '絵文字を選択', ko: '이모지 선택', en: 'Select Emoji' },
-    joinedRooms: { ja: '参加したルーム', ko: '참가한 방', en: 'Joined Rooms' },
-    noRooms: { ja: 'ルームがありません', ko: '참가한 방이 없습니다', en: 'No rooms joined' },
-    join: { ja: '参加', ko: '참가', en: 'Join' },
-  };
-  return translations[key]?.[lang] || key;
-};
+import { useTranslation } from '../hooks/useTranslation';
 
 interface Room {
   id: string;
@@ -102,7 +48,7 @@ export function Home() {
   const [newContactName, setNewContactName] = useState('');
   const [newContactEmail, setNewContactEmail] = useState('');
   const [newContactLanguage, setNewContactLanguage] = useState<'ja' | 'ko' | 'en'>('ja');
-  const [systemLanguage, setSystemLanguage] = useState<'ja' | 'ko' | 'en'>('ja');
+  const { t, setSystemLanguage } = useTranslation();
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [showNicknameDialog, setShowNicknameDialog] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -155,7 +101,7 @@ export function Home() {
 
       } catch (error) {
         console.error('Failed to fetch main data:', error);
-        toast.error('데이터를 불러오는데 실패했습니다.');
+        toast.error('データを読み込めませんでした');
 
         // Fallback to localStorage on error
         const savedRooms = JSON.parse(localStorage.getItem('uri-tomo-rooms') || '[]');
@@ -176,11 +122,6 @@ export function Home() {
 
     fetchMainData();
 
-    // Load system language
-    const savedLanguage = localStorage.getItem('uri-tomo-language') as 'ja' | 'ko' | 'en' | null;
-    if (savedLanguage) {
-      setSystemLanguage(savedLanguage);
-    }
   }, []);
 
   // Listen for profile/settings events from Layout and profile updates
@@ -254,22 +195,22 @@ export function Home() {
 
   const handleAddContact = async () => {
     if (!newContactEmail.trim()) {
-      toast.error('メールアドレスを入力してください');
+      toast.error(t('enterEmail'));
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newContactEmail)) {
-      toast.error('有効なメールアドレスを入力してくさい');
+      toast.error(t('validEmail'));
       return;
     }
 
     setIsCheckingEmail(true);
 
     // In real app, this would be an actual API call like userApi.addContact(newContactEmail)
-    toast.info('友達追加機能は現在バックエンドの実装を待機中です。', {
-      description: '将来的には、このメールアドレスにリクエストが送信されます。',
+    toast.info(t('friendAddPending'), {
+      description: t('requestWillBeSent'),
       duration: 4000,
     });
 
@@ -292,8 +233,8 @@ export function Home() {
       setContacts(updatedContacts);
       localStorage.setItem('uri-tomo-contacts', JSON.stringify(updatedContacts));
       setShowNicknameDialog(false);
-      toast.success('ニックネームを設定しました', {
-        description: `${selectedContact.name} のニックネームを設定しました。`,
+      toast.success(t('nicknameSet'), {
+        description: `${selectedContact.name} ${t('nicknameSet')}.`,
         duration: 3000,
       });
     }
@@ -303,8 +244,8 @@ export function Home() {
     const updatedContacts = contacts.filter(c => c.id !== contact.id);
     setContacts(updatedContacts);
     localStorage.setItem('uri-tomo-contacts', JSON.stringify(updatedContacts));
-    toast.success('連絡先を削除しました', {
-      description: `${contact.name} を連絡先から削除しました。`,
+    toast.success(t('contactDeleted'), {
+      description: `${contact.name} ${t('deleteContactDesc')}`,
       duration: 3000,
     });
   };
@@ -314,7 +255,7 @@ export function Home() {
       <div className="flex-1 flex items-center justify-center bg-white">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">데이터를 불러오는 중...</p>
+          <p className="text-gray-500 font-medium">{t('loadingData')}</p>
         </div>
       </div>
     );
@@ -326,7 +267,7 @@ export function Home() {
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="h-6 w-6 text-gray-700" />
-          <h3 className="font-bold text-gray-900 text-lg uppercase tracking-tight">{t(systemLanguage, 'contacts')}</h3>
+          <h3 className="font-bold text-gray-900 text-lg uppercase tracking-tight">{t('contacts')}</h3>
           <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{contacts.length}</span>
         </div>
         <button
@@ -334,7 +275,7 @@ export function Home() {
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
         >
           <UserPlus className="h-5 w-5" />
-          <span>{t(systemLanguage, 'add')}</span>
+          <span>{t('add')}</span>
         </button>
       </div>
 
@@ -400,7 +341,7 @@ export function Home() {
                       }}
                     >
                       <Edit3 className="mr-2 h-4 w-4" />
-                      {t(systemLanguage, 'edit')}
+                      {t('edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={(e) => {
@@ -411,7 +352,7 @@ export function Home() {
                       className="text-red-600 focus:text-red-600 focus:bg-red-50"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      {t(systemLanguage, 'delete')}
+                      {t('delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -430,12 +371,12 @@ export function Home() {
             className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
           >
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">{t(systemLanguage, 'addFriend')}</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('addFriend')}</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
                 <Label htmlFor="contact-email" className="text-base font-semibold text-gray-900">
-                  {t(systemLanguage, 'email')}
+                  {t('email')}
                 </Label>
                 <Input
                   id="contact-email"
@@ -457,14 +398,14 @@ export function Home() {
                 className="flex-1"
                 disabled={isCheckingEmail}
               >
-                {t(systemLanguage, 'cancel')}
+                {t('cancel')}
               </Button>
               <Button
                 onClick={handleAddContact}
                 className="flex-1 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white"
                 disabled={isCheckingEmail}
               >
-                {isCheckingEmail ? '確認中...' : '追加'}
+                {isCheckingEmail ? t('checking') : t('add')}
               </Button>
             </div>
           </motion.div>
@@ -480,12 +421,12 @@ export function Home() {
             className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
           >
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">{t(systemLanguage, 'editNickname')}</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('editNickname')}</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
                 <Label className="text-base font-semibold text-gray-900">
-                  {t(systemLanguage, 'contactName')}
+                  {t('contactName')}
                 </Label>
                 <div className="mt-2 px-4 py-2 bg-gray-100 rounded-lg text-gray-600">
                   {selectedContact?.name}
@@ -493,13 +434,13 @@ export function Home() {
               </div>
               <div>
                 <Label htmlFor="nickname" className="text-base font-semibold text-gray-900">
-                  {t(systemLanguage, 'nickname')}
+                  {t('nickname')}
                 </Label>
                 <Input
                   id="nickname"
                   value={editedNickname}
                   onChange={(e) => setEditedNickname(e.target.value)}
-                  placeholder="ニックネームを入力"
+                  placeholder={t('enterNickname')}
                   className="mt-2"
                 />
               </div>
@@ -510,13 +451,13 @@ export function Home() {
                 variant="outline"
                 className="flex-1"
               >
-                {t(systemLanguage, 'cancel')}
+                {t('cancel')}
               </Button>
               <Button
                 onClick={handleSaveNickname}
                 className="flex-1 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white"
               >
-                {t(systemLanguage, 'save')}
+                {t('save')}
               </Button>
             </div>
           </motion.div>
@@ -527,13 +468,13 @@ export function Home() {
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t(systemLanguage, 'deleteContact')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteContact')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {contactToDelete?.name} {t(systemLanguage, 'deleteContactDesc')}
+              {contactToDelete?.name} {t('deleteContactDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t(systemLanguage, 'cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (contactToDelete) {
@@ -544,7 +485,7 @@ export function Home() {
               }}
               className="bg-red-600 hover:bg-red-700"
             >
-              {t(systemLanguage, 'delete')}
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -561,7 +502,6 @@ export function Home() {
         editedUserName={editedUserName}
         editedUserAvatar={editedUserAvatar}
         editedAvatarType={editedAvatarType}
-        systemLanguage={systemLanguage}
         onNameChange={setEditedUserName}
         onAvatarChange={setEditedUserAvatar}
         onAvatarTypeChange={setEditedAvatarType}
@@ -588,7 +528,7 @@ export function Home() {
           };
           localStorage.setItem('uri-tomo-user-profile', JSON.stringify(profile));
           window.dispatchEvent(new Event('profile-updated'));
-          toast.success('プロフィールが更新されました');
+          toast.success(t('profileUpdated'));
           setShowProfileSettings(false);
         }}
       />
@@ -597,8 +537,6 @@ export function Home() {
       <SystemSettingsModal
         isOpen={showSystemSettings}
         onClose={() => setShowSystemSettings(false)}
-        systemLanguage={systemLanguage}
-        onLanguageChange={setSystemLanguage}
       />
     </main>
   );
