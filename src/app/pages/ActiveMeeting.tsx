@@ -94,6 +94,8 @@ function ActiveMeetingContent({
   const remoteTracks = tracks.filter(t => !t.participant.isLocal);
 
   const [currentUser] = useState(currentUserProp);
+
+  // マイク・カメラの状態管理
   const [isMicOn, setIsMicOn] = useState(initialSettings?.isMicOn ?? true);
   const [isVideoOn, setIsVideoOn] = useState(initialSettings?.isVideoOn ?? true);
 
@@ -125,7 +127,6 @@ function ActiveMeetingContent({
   const [termExplanations, setTermExplanations] = useState<TermExplanation[]>([]);
   // const [participants, setParticipants] = useState<Participant[]>([]); // Removed in favor of useParticipants
   const [meetingTitle] = useState('日韓プロジェクト会議');
-  const [startTime] = useState(new Date());
 
   // Refs
   const chatInputRef = useRef<HTMLInputElement>(null);
@@ -144,6 +145,8 @@ function ActiveMeetingContent({
   const [editedUserAvatar, setEditedUserAvatar] = useState('');
   const [editedAvatarType, setEditedAvatarType] = useState<'emoji' | 'image' | 'none'>('none');
   const [systemLanguage, setSystemLanguage] = useState<'ja' | 'ko' | 'en'>('ja');
+  // 会議開始時間を記録
+  const [startTime] = useState(new Date());
 
   // --- Logic 1: Screen Share IPC Listener ---
   useEffect(() => {
@@ -287,7 +290,6 @@ function ActiveMeetingContent({
     }
   };
 
-  // --- Chat & Meeting Actions ---
   const handleSendChat = () => {
     if (chatInput.trim()) {
       setChatMessages([...chatMessages, { id: Date.now().toString(), sender: currentUser.name, message: chatInput, timestamp: new Date() }]);
@@ -323,13 +325,11 @@ function ActiveMeetingContent({
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // ★ここに追加: スタンプ選択ハンドラ
   const handleStickerSelect = (sticker: string) => {
     setChatMessages([...chatMessages, { id: Date.now().toString(), sender: currentUser.name, message: sticker, timestamp: new Date() }]);
     setShowStickerPicker(false);
   };
 
-  // ★ここに追加: 会議終了ハンドラ
   const handleEndMeeting = () => setShowEndMeetingConfirm(true);
 
   // ★ここに追加: 会議終了確定ハンドラ
@@ -514,7 +514,7 @@ function ActiveMeetingContent({
                   </motion.div>
                 )}
 
-                {/* Remote Participants */}
+                {/* Remote Participants (修正: カメラ映像のみ反転) */}
                 {remoteTracks.map((track) => (
                   <motion.div key={track.participant.identity + track.source} className="relative bg-gray-800 rounded-xl overflow-hidden border-2 border-gray-700 hover:border-yellow-400 transition-all">
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -549,7 +549,7 @@ function ActiveMeetingContent({
               <Panel defaultSize={30} minSize={25} maxSize={50}>
                 <div className="h-full bg-white flex flex-col">
                   {/* Uri-Tomo Header */}
-                  <div className="bg-gradient-to-r from-yellow-400 to-amber-400 px-4 py-3">
+                  <div className="bg-gradient-to-r from-yellow-400 to-amber-400 px-4 py-3 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
@@ -570,18 +570,9 @@ function ActiveMeetingContent({
                     </div>
                   </div>
 
-                  {/* Description Section - Term Explanations */}
-                  <div className="border-b border-gray-200 bg-white max-h-48 overflow-y-auto">
-                    <div className="sticky top-0 bg-white px-4 pt-4 pb-2 border-b border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <Bot className="h-4 w-4 text-yellow-600" />
-                        <h4 className="font-bold text-gray-900 text-sm">Description</h4>
-                        <span className="text-xs text-gray-500">
-                          ({termExplanations.length}件の用語解説)
-                        </span>
-                      </div>
-                    </div>
-                    
+                  {/* Description Section */}
+                  <div className="border-b border-gray-200 bg-white max-h-48 overflow-y-auto flex-shrink-0">
+                    <div className="sticky top-0 bg-white px-4 pt-4 pb-2 border-b border-gray-100"><div className="flex items-center gap-2"><Bot className="h-4 w-4 text-yellow-600" /><h4 className="font-bold text-gray-900 text-sm">Description</h4><span className="text-xs text-gray-500">({termExplanations.length}件の用語解説)</span></div></div>
                     <div className="p-4">
                       {termExplanations.length === 0 ? (
                         <div className="text-center py-4">
@@ -1062,11 +1053,11 @@ function ActiveMeetingContent({
 
       <footer className="bg-gray-800 border-t border-gray-700 px-6 py-4 flex-shrink-0">
         <div className="flex justify-center gap-4">
-          <Button onClick={toggleMic} className={`rounded-full w-12 h-12 ${isMicOn ? 'bg-gray-700' : 'bg-red-600'}`}>{isMicOn ? <Mic className="h-5 w-5 text-white" /> : <MicOff className="h-5 w-5 text-white" />}</Button>
-          <Button onClick={toggleVideo} className={`rounded-full w-12 h-12 ${isVideoOn ? 'bg-gray-700' : 'bg-red-600'}`}>{isVideoOn ? <Video className="h-5 w-5 text-white" /> : <VideoOff className="h-5 w-5 text-white" />}</Button>
-          <Button onClick={handleEndMeeting} className="rounded-full w-12 h-12 bg-red-600"><PhoneOff className="h-5 w-5 text-white" /></Button>
+          <Button onClick={toggleMic} className={`rounded-full w-12 h-12 ${isMicOn ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-700'}`}>{isMicOn ? <Mic className="h-5 w-5 text-white" /> : <MicOff className="h-5 w-5 text-white" />}</Button>
+          <Button onClick={toggleVideo} className={`rounded-full w-12 h-12 ${isVideoOn ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-700'}`}>{isVideoOn ? <Video className="h-5 w-5 text-white" /> : <VideoOff className="h-5 w-5 text-white" />}</Button>
+          <Button onClick={handleEndMeeting} className="rounded-full w-12 h-12 bg-red-600 hover:bg-red-700"><PhoneOff className="h-5 w-5 text-white" /></Button>
           <Button onClick={toggleScreenShare} className={`rounded-full w-12 h-12 ${isScreenSharing ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900' : 'bg-gray-700 hover:bg-gray-600'}`}><MonitorUp className={`h-5 w-5 ${isScreenSharing ? 'text-gray-900' : 'text-white'}`} /></Button>
-          <Button onClick={() => setShowSettings(true)} className="rounded-full w-12 h-12 bg-gray-700"><Settings className="h-5 w-5 text-white" /></Button>
+          <Button onClick={() => setShowSettings(true)} className="rounded-full w-12 h-12 bg-gray-700 hover:bg-gray-600"><Settings className="h-5 w-5 text-white" /></Button>
         </div>
       </footer>
 
@@ -1088,7 +1079,7 @@ function ActiveMeetingContent({
         </div>
       )}
 
-      {/* Settings Modal (Fixed: Empty Select Fix + Original UI) */}
+      {/* Settings Modal */}
       {showSettings && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center" onClick={() => setShowSettings(false)}>
           <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
