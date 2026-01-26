@@ -36,10 +36,11 @@ import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { ProfileSettingsModal, SystemSettingsModal } from '../components/SettingsModals';
 import { toast } from 'sonner';
-
 import { useMeetingSocket } from '../meeting/hooks/useMeetingSocket';
-import { ChatMessage } from '../meeting/types';
+import { ChatMessage, Participant, Room } from '../meeting/types';
 import { useTranslation } from '../hooks/useTranslation';
+import { roomApi } from '../api/room';
+import { RoomMember } from '../api/types';
 
 /* 
 interface ChatMessage {
@@ -53,17 +54,6 @@ interface ChatMessage {
 }
 */
 
-interface Participant {
-  id: string;
-  name: string;
-  avatar?: string;
-  isOnline: boolean;
-}
-
-interface Room {
-  id: string;
-  name: string;
-}
 
 interface MeetingMinute {
   id: string;
@@ -84,13 +74,11 @@ export function MeetingRoom() {
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  // const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userName, setUserName] = useState('Me');
   const [userEmail, setUserEmail] = useState('');
 
   // WebSocket Hook (must be after userName is defined)
-  const { messages, sendMessage: sendWsMessage, sessionId } = useMeetingSocket({
+  const { messages, participants, setParticipants, sendMessage: sendWsMessage, sessionId } = useMeetingSocket({
     roomId: id || '',
     userName
   });
@@ -108,6 +96,7 @@ export function MeetingRoom() {
   const [roomNotifications, setRoomNotifications] = useState(true);
   const [showMembersList, setShowMembersList] = useState(false);
   const [showMembersPanel, setShowMembersPanel] = useState(false);
+  const [roomDetail, setRoomDetail] = useState<{ participant_count: number } | null>(null);
 
   // Additional profile settings states
   const [userAvatar, setUserAvatar] = useState('');
@@ -168,63 +157,32 @@ export function MeetingRoom() {
       setActiveTab(location.state.activeTab);
     }
 
-    // Load rooms
-    const savedRooms = JSON.parse(localStorage.getItem('uri-tomo-rooms') || '[]');
-    setRooms(savedRooms);
-
-    // Find current room
-    const room = savedRooms.find((r: Room) => r.id === id);
-    if (room) {
-      setCurrentRoom(room);
-    }
-
-    // Load user info
-    const savedUser = localStorage.getItem('uri-tomo-user');
-    const savedProfile = localStorage.getItem('uri-tomo-user-profile');
-    // const savedLanguage = localStorage.getItem('uri-tomo-system-language');
-
-    if (savedProfile) {
+    // Load room details from API
+    const fetchRoomDetail = async () => {
+      if (!id) return;
+      setIsLoading(true);
       try {
-        const profile = JSON.parse(savedProfile);
-        setUserName(profile.name || 'ユーザー');
-        setUserEmail(profile.email || savedUser || '');
-        setUserAvatar(profile.avatar || '');
-        setAvatarType(profile.avatarType || 'none');
-      } catch (e) {
-        if (savedUser) {
-          setUserEmail(savedUser);
-          setUserName(savedUser.split('@')[0]);
-        }
+        const data = await roomApi.getRoomDetail(id);
+        setCurrentRoom({ id: data.id, name: data.name });
+        setRoomName(data.name);
+
+        // Map API members to local Participant type
+        const apiParticipants = data.members.map((m: RoomMember) => ({
+          id: m.id,
+          name: m.name,
+          isOnline: m.status === 'online',
+        }));
+        setParticipants(apiParticipants);
+        setRoomDetail({ participant_count: data.participant_count });
+      } catch (error) {
+        console.error('Failed to fetch room detail:', error);
+        toast.error(t('roomLoadError') || 'Failed to load room details');
+      } finally {
+        setIsLoading(false);
       }
-    } else if (savedUser) {
-      setUserName(savedUser.split('@')[0]);
-      setUserEmail(savedUser);
-    }
+    };
 
-    // if (savedLanguage) {
-    //   setSystemLanguage(savedLanguage as 'ja' | 'ko' | 'en');
-    // }
-
-    // Load participants from contacts
-    const savedContacts = JSON.parse(localStorage.getItem('uri-tomo-contacts') || '[]');
-    const contactParticipants = savedContacts.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      isOnline: c.status === 'online',
-    }));
-    setParticipants(contactParticipants);
-
-    // Load chat messages for this room
-    // WebSocket hook handles messages now
-    // const savedMessages = JSON.parse(
-    //   localStorage.getItem(`uri-tomo-chat-${id}`) || '[]'
-    // );
-    // setMessages(
-    //   savedMessages.map((m: any) => ({
-    //     ...m,
-    //     timestamp: new Date(m.timestamp),
-    //   }))
-    // );
+    fetchRoomDetail();
 
     // Load meeting minutes for this room
     const savedMinutes = JSON.parse(
@@ -324,7 +282,7 @@ export function MeetingRoom() {
       return;
     }
 
-    // Update rooms in localStorage
+    // Update rooms in localStorage (Keeping as backup for now, but should ideally use API)
     const savedRooms = JSON.parse(localStorage.getItem('uri-tomo-rooms') || '[]');
     const updatedRooms = savedRooms.map((r: Room) =>
       r.id === id ? { ...r, name: roomName } : r
@@ -338,7 +296,7 @@ export function MeetingRoom() {
     setShowRoomSettings(false);
   };
 
-  const participantCount = participants.filter(p => p.isOnline).length + 1; // +1 for current user
+  const participantCount = roomDetail?.participant_count || (participants.filter(p => p.isOnline).length + 1);
 
   return (
     <main className="flex-1 flex relative">
