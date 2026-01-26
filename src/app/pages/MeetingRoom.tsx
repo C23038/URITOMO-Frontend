@@ -37,7 +37,7 @@ import { Card } from '../components/ui/card';
 import { ProfileSettingsModal, SystemSettingsModal } from '../components/SettingsModals';
 import { toast } from 'sonner';
 import { useMeetingSocket } from '../meeting/hooks/useMeetingSocket';
-import { ChatMessage, Participant, Room } from '../meeting/types';
+import { ChatMessage } from '../meeting/types';
 import { useTranslation } from '../hooks/useTranslation';
 import { roomApi } from '../api/room';
 import { RoomMember } from '../api/types';
@@ -54,6 +54,17 @@ interface ChatMessage {
 }
 */
 
+interface Participant {
+  id: string;
+  name: string;
+  avatar?: string;
+  isOnline: boolean;
+}
+
+interface Room {
+  id: string;
+  name: string;
+}
 
 interface MeetingMinute {
   id: string;
@@ -74,11 +85,13 @@ export function MeetingRoom() {
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  // const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userName, setUserName] = useState('Me');
   const [userEmail, setUserEmail] = useState('');
 
   // WebSocket Hook (must be after userName is defined)
-  const { messages, participants, setParticipants, sendMessage: sendWsMessage, sessionId } = useMeetingSocket({
+  const { messages, sendMessage: sendWsMessage, sessionId } = useMeetingSocket({
     roomId: id || '',
     userName
   });

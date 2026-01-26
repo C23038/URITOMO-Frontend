@@ -182,26 +182,19 @@ function ActiveMeetingContent({
     }
   }, [room, room?.state, meetingId]);
 
-  // --- Logic 1.6: Track Subscription Logging and Manual Audio Attach ---
+  // --- Logic 1.6: Track Subscription Event Listener ---
   useEffect(() => {
     if (!room) return;
 
-    const handleTrackSubscribed = (
-      track: any,
-      publication: any,
-      participant: any
-    ) => {
-      console.log(
-        `[LK] TrackSubscribed: kind=${track.kind}, participant=${participant.identity}, trackSid=${publication.trackSid}`
-      );
+    const handleTrackSubscribed = (track: any, publication: any, participant: any) => {
+      console.log('[LK] TrackSubscribed:', track.kind, participant.identity, publication.trackSid);
 
-      // 원격 오디오 트랙을 DOM에 수동으로 붙이기
+      // 오디오 트랙을 DOM에 자동 attach
       if (track.kind === Track.Kind.Audio) {
+        console.log('[LK] Attaching audio track from participant:', participant.identity);
         const audioElement = track.attach();
-        audioElement.setAttribute('data-participant', participant.identity);
-        audioElement.setAttribute('data-track-sid', publication.trackSid);
+        audioElement.setAttribute('data-participant-identity', participant.identity);
         document.body.appendChild(audioElement);
-        console.log(`[LK] Audio track attached to DOM for ${participant.identity}`);
       }
     };
 
@@ -1346,20 +1339,16 @@ export function ActiveMeeting() {
     <LiveKitRoom
       token={livekitToken}
       serverUrl={livekitUrl}
+      connectOptions={{
+        autoSubscribe: true,
+      }}
       video={initialVideoOn ? { deviceId: videoDeviceId } : false}
       audio={initialMicOn ? { deviceId: audioDeviceId } : false}
       onDisconnected={() => navigate('/')}
       onError={(err) => {
         console.error("❌ LiveKit Connection Error:", err);
+        // Specifically catch the DNS error pattern from the user report if possible, though it's usually generic here
         toast.error(`${t('connectionError')}: ${err.message || t('connectionError')}`);
-      }}
-      connect={true}
-      options={{
-        adaptiveStream: true,
-        dynacast: true,
-      }}
-      connectOptions={{
-        autoSubscribe: true,
       }}
       className="h-screen w-full bg-gray-900"
     >
@@ -1371,6 +1360,6 @@ export function ActiveMeeting() {
         livekitToken={livekitToken}
       />
       <RoomAudioRenderer />
-    </LiveKitRoom >
+    </LiveKitRoom>
   );
 }
