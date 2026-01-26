@@ -208,16 +208,52 @@ export function Home() {
 
     setIsCheckingEmail(true);
 
-    // In real app, this would be an actual API call like userApi.addContact(newContactEmail)
-    toast.info(t('friendAddPending'), {
-      description: t('requestWillBeSent'),
-      duration: 4000,
-    });
+    try {
+      // Call backend API to add friend
+      const friendData = await userApi.addFriend(newContactEmail);
 
-    setShowAddContact(false);
-    setNewContactEmail('');
-    setIsCheckingEmail(false);
+      // Create new contact from response
+      const newContact: Contact = {
+        id: Date.now().toString(), // Generate temporary ID
+        name: friendData.name,
+        email: friendData.email,
+        status: 'online',
+      };
+
+      // Update contacts list in state - this will trigger UI update
+      const updatedContacts = [...contacts, newContact];
+      setContacts(updatedContacts);
+
+      // Update localStorage
+      localStorage.setItem('uri-tomo-contacts', JSON.stringify(updatedContacts));
+
+      // Dispatch event for other components
+      window.dispatchEvent(new Event('contacts-updated'));
+
+      // Show success message
+      toast.success(t('friendAdded') || '友達が追加されました', {
+        description: `${friendData.name} (${friendData.email})`,
+        duration: 4000,
+      });
+
+      // Close modal and reset
+      setShowAddContact(false);
+      setNewContactEmail('');
+
+    } catch (error: any) {
+      console.error('Failed to add friend:', error);
+
+      // Check if the error is because email doesn't exist
+      if (error.response?.status === 404) {
+        toast.error(t('emailNotFound') || 'そのメールアドレスのユーザーが見つかりませんでした');
+      } else {
+        toast.error(t('friendAddFailed') || '友達の追加に失敗しました');
+      }
+    } finally {
+      setIsCheckingEmail(false);
+    }
   };
+
 
   const handleEditNickname = (contact: Contact) => {
     setSelectedContact(contact);
