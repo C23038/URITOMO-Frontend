@@ -69,3 +69,14 @@ export interface LivekitTokenResponse {
   url: string;
   token: string;
 }
+
+// 친구 추가 관련 타입
+export interface AddFriendRequest {
+  email: string;
+}
+
+export interface AddFriendResponse {
+  name: string;
+  email: string;
+  lang: string;
+}
