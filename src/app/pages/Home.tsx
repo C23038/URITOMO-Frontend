@@ -57,6 +57,8 @@ export function Home() {
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+
+
   useEffect(() => {
     const fetchMainData = async () => {
       try {
@@ -83,6 +85,29 @@ export function Home() {
         }));
         setContacts(mappedContacts);
 
+        // 4. Fetch detailed profile (for avatar)
+        try {
+          const profile = await userApi.getProfile();
+          if (profile) {
+            setUserName(profile.display_name || data.user.display_name);
+            setUserEmail(profile.email || data.user.email);
+
+            if (profile.picture) {
+              setUserAvatar(profile.picture);
+              // Simple heuristic for avatar type
+              if (profile.picture.startsWith('http') || profile.picture.startsWith('/')) {
+                setAvatarType('image');
+              } else {
+                setAvatarType('emoji');
+              }
+            } else {
+              setAvatarType('none');
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to fetch detailed profile, using main data');
+        }
+
         // Update localStorage as a fallback/cache if needed
         localStorage.setItem('uri-tomo-user', data.user.email);
         const existingProfile = JSON.parse(localStorage.getItem('uri-tomo-user-profile') || '{}');
@@ -90,6 +115,7 @@ export function Home() {
           ...existingProfile,
           name: data.user.display_name,
           email: data.user.email,
+          // update avatar if we got it? 
         }));
         localStorage.setItem('uri-tomo-rooms', JSON.stringify(mappedRooms));
         localStorage.setItem('uri-tomo-contacts', JSON.stringify(mappedContacts));
@@ -541,31 +567,47 @@ export function Home() {
         onNameChange={setEditedUserName}
         onAvatarChange={setEditedUserAvatar}
         onAvatarTypeChange={setEditedAvatarType}
-        onAvatarImageUpload={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              setEditedUserAvatar(reader.result as string);
-              setEditedAvatarType('image');
+
+        onSave={async () => {
+          try {
+            let currentAvatar = editedUserAvatar;
+
+            // 1. Prepare Payload
+            const updatePayload: any = {
+              display_name: editedUserName,
             };
-            reader.readAsDataURL(file);
+
+            // Handle Avatar Logic for PATCH
+            if (editedAvatarType === 'emoji') {
+              updatePayload.picture = editedUserAvatar;
+            } else if (editedAvatarType === 'none') {
+              updatePayload.picture = '';
+            }
+
+            const updatedProfile = await userApi.updateProfile(updatePayload);
+
+            // Use returned profile or local state
+            setUserName(updatedProfile.display_name);
+            // If backend returned picture, use it, else use evaluated one
+            if (updatedProfile.picture) setUserAvatar(updatedProfile.picture);
+            else setUserAvatar(currentAvatar);
+
+            setAvatarType(editedAvatarType);
+
+            const profile = {
+              name: editedUserName,
+              email: userEmail,
+              avatar: currentAvatar,
+              avatarType: editedAvatarType,
+            };
+            localStorage.setItem('uri-tomo-user-profile', JSON.stringify(profile));
+            window.dispatchEvent(new Event('profile-updated'));
+            toast.success(t('profileUpdated'));
+            setShowProfileSettings(false);
+          } catch (error) {
+            console.error('Profile update failed:', error);
+            toast.error(t('updateProfileFailed') || 'Profile update failed');
           }
-        }}
-        onSave={() => {
-          setUserName(editedUserName);
-          setUserAvatar(editedUserAvatar);
-          setAvatarType(editedAvatarType);
-          const profile = {
-            name: editedUserName,
-            email: userEmail,
-            avatar: editedUserAvatar,
-            avatarType: editedAvatarType,
-          };
-          localStorage.setItem('uri-tomo-user-profile', JSON.stringify(profile));
-          window.dispatchEvent(new Event('profile-updated'));
-          toast.success(t('profileUpdated'));
-          setShowProfileSettings(false);
         }}
       />
 

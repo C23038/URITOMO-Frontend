@@ -21,7 +21,6 @@ interface ProfileSettingsModalProps {
   onAvatarChange: (avatar: string) => void;
   onAvatarTypeChange: (type: 'emoji' | 'image' | 'none') => void;
   onSave: () => void;
-  onAvatarImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export function ProfileSettingsModal({
@@ -36,7 +35,6 @@ export function ProfileSettingsModal({
   onAvatarChange,
   onAvatarTypeChange,
   onSave,
-  onAvatarImageUpload,
 }: ProfileSettingsModalProps) {
   const { t } = useTranslation();
 
@@ -116,21 +114,7 @@ export function ProfileSettingsModal({
                   </div>
                 </button>
 
-                <label className="w-full p-3 rounded-lg border-2 transition-all flex items-center gap-3 hover:border-yellow-400 hover:bg-yellow-50 cursor-pointer">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
-                    <ImageIcon className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="text-left flex-1">
-                    <p className="font-semibold text-gray-900">{t('uploadImage')}</p>
-                    <p className="text-xs text-gray-500">{t('uploadYourPhoto')}</p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={onAvatarImageUpload}
-                    className="hidden"
-                  />
-                </label>
+
 
                 <button
                   onClick={() => {
