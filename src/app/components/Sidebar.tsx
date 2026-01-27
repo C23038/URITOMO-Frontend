@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Users, Plus, Settings, LogOut } from 'lucide-react';
-import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
+import { CreateRoomModal } from './CreateRoomModal';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface Room {
@@ -28,7 +25,7 @@ export function Sidebar({ onLogout, userName, userEmail, userAvatar, avatarType,
   const location = useLocation();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isRoomDialogOpen, setIsRoomDialogOpen] = useState(false);
-  const [newRoomName, setNewRoomName] = useState('');
+
   const { t } = useTranslation();
 
   const loadRooms = () => {
@@ -50,12 +47,10 @@ export function Sidebar({ onLogout, userName, userEmail, userAvatar, avatarType,
     };
   }, []);
 
-  const handleCreateRoom = () => {
-    if (!newRoomName.trim()) return;
-
+  const handleCreateRoom = (roomName: string) => {
     const newRoom: Room = {
       id: Date.now().toString(),
-      name: newRoomName,
+      name: roomName,
     };
 
     const updatedRooms = [...rooms, newRoom];
@@ -63,7 +58,6 @@ export function Sidebar({ onLogout, userName, userEmail, userAvatar, avatarType,
     localStorage.setItem('uri-tomo-rooms', JSON.stringify(updatedRooms));
 
     setIsRoomDialogOpen(false);
-    setNewRoomName('');
   };
 
   const handleJoinRoom = (roomId: string) => {
@@ -138,38 +132,19 @@ export function Sidebar({ onLogout, userName, userEmail, userAvatar, avatarType,
           <span className="font-medium">{t('settings')}</span>
         </button>
 
-        <Dialog open={isRoomDialogOpen} onOpenChange={setIsRoomDialogOpen}>
-          <DialogTrigger asChild>
-            <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-yellow-100 text-yellow-700 transition-colors">
-              <Plus className="h-5 w-5" />
-              <span className="font-medium">{t('addRoom')}</span>
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('createNewRoom')}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div>
-                <Label htmlFor="roomName">{t('roomName')}</Label>
-                <Input
-                  id="roomName"
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
-                  placeholder={t('enterRoomName')}
-                  className="mt-2"
-                />
-              </div>
-              <Button
-                onClick={handleCreateRoom}
-                className="w-full bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                {t('create')}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <button
+          onClick={() => setIsRoomDialogOpen(true)}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-yellow-100 text-yellow-700 transition-colors"
+        >
+          <Plus className="h-5 w-5" />
+          <span className="font-medium">{t('addRoom')}</span>
+        </button>
+
+        <CreateRoomModal
+          isOpen={isRoomDialogOpen}
+          onClose={() => setIsRoomDialogOpen(false)}
+          onCreate={handleCreateRoom}
+        />
 
         <button
           onClick={onLogout}

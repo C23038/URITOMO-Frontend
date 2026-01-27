@@ -305,17 +305,15 @@ export function Login({ onLogin }: LoginProps) {
               <div className="grid grid-cols-2 gap-4">
                 <Button
                   type="button"
-                  variant="outline"
                   onClick={() => setIsCreatingAccount(true)}
-                  className="border-2 border-yellow-300 hover:bg-yellow-50 text-gray-700 font-medium"
+                  className="w-full bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white font-semibold py-3 shadow-lg"
                 >
                   {t('createAccount')}
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
                   onClick={() => setShowFindAccount(true)}
-                  className="border-2 border-gray-300 hover:bg-gray-50 text-gray-700 font-medium"
+                  className="w-full bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white font-semibold py-3 shadow-lg"
                 >
                   {t('findAccount')}
                 </Button>
