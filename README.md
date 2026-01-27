@@ -1,79 +1,108 @@
-# Uri-Tomo Meeting 🤝
+# Uri-Tomo Meeting
 
-언어의 장벽을 넘어 원활한 소통을 지원하는 현대적인 데스크톱 화상 회의 애플리케이션입니다. Uri-Tomo는 실시간 번역 기능과 고품질 화상 회의 기능을 통해 전 세계 사용자들을 연결합니다.
+Uri-Tomo Meeting is a modern, Electron-based video conferencing application built with React and LiveKit. It provides real-time audio and video communication capabilities, seamless integration with a backend server, and a polished user interface.
 
-## 🚀 주요 기능
+## 🚀 Key Features
 
-- **화상 회의 (Video Conferencing)**: [LiveKit](https://livekit.io/) 기반의 안정적인 고화질 영상 및 음성 통화 지원.
-- **게스트 로그인 (Guest Login)**: 별도의 회원가입 없이 간편하게 접속할 수 있는 게스트 모드 제공.
-- **실시간 번역 (Real-time Translation)**: DeepL 연동을 통해 언어 장벽 없는 커뮤니케이션 지원.
-- **개발자 도구 (Developer Tools)**: 개발 및 테스트를 위한 빠른 로그인 단축 기능 제공.
-- **현대적인 UI (Modern UI)**: Radix UI와 Tailwind CSS를 활용한 세련되고 반응성이 뛰어난 인터페이스.
-- **사용자 설정 (Customizable Settings)**: 언어 설정 및 다양한 시스템 환경 설정 가능.
+*   **Real-time Communication:** High-quality video and audio calls powered by [LiveKit](https://livekit.io/).
+*   **Authentication:**
+    *   **Guest Login:** Quick access for users without an account.
+    *   **Developer Shortcut:** Instant login mechanism for testing purposes.
+    *   **Social Login:** UI placeholders for Google and Line integration.
+*   **Room Management:**
+    *   Create and join meeting rooms.
+    *   In-room settings for managing the session.
+    *   Backend synchronization for live sessions.
+*   **System Settings:**
+    *   Language selection with instant feedback.
+    *   Responsive and fixed-layout design optimization.
+*   **Cross-Platform Desktop App:** Built with Electron to run natively on Windows, macOS, and Linux.
 
-## 🛠 기술 스택 (Technology Stack)
+## 🛠️ Tech Stack
 
-- **Core**: [React](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Desktop Framework**: [Electron](https://www.electronjs.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), [Lucide React](https://lucide.dev/)
-- **State Management & Routing**: React Router DOM, React Hook Form
-- **Real-time Communication**: LiveKit Client SDK
+*   **Framework:** [Electron](https://www.electronjs.org/), [Vite](https://vitejs.dev/)
+*   **Frontend Library:** [React 18](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
+*   **Styling:** [TailwindCSS](https://tailwindcss.com/)
+*   **UI Components:** [Radix UI](https://www.radix-ui.com/), [shadcn/ui](https://ui.shadcn.com/), [Lucide React](https://lucide.dev/)
+*   **Real-time Infrastructure:** [LiveKit Client SDK](https://docs.livekit.io/client-sdk-js/)
+*   **State Management & Utilities:** `axios`, `sonner`, `react-hook-form`, `zod` (implied by hook-form usage), `framer-motion`.
 
-## 📦 시작 가이드 (Getting Started)
+## 📦 Getting Started
 
-### 사전 요구 사항 (Prerequisites)
+### Prerequisites
 
-- Node.js (v18 이상 권장)
-- npm 또는 yarn
+*   [Node.js](https://nodejs.org/) (Version 18 or higher recommended)
+*   [npm](https://www.npmjs.com/) (usually comes with Node.js)
 
-### 설치 방법 (Installation)
+### Installation
 
-1. 저장소를 클론합니다:
-   ```bash
-   git clone <repository-url>
-   cd uri-tomo
-   ```
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/your-username/uri-tomo-meeting.git
+    cd uri-tomo-meeting
+    ```
 
-2. 의존성을 설치합니다:
-   ```bash
-   npm install
-   ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-3. 환경 변수 설정:
-   루트 디렉토리에 `.env` 파일을 생성하고 필요한 API 키(LiveKit, DeepL, Backend URL 등)를 설정합니다.
+### Configuration
 
-### 실행 방법 (Running the Application)
+Create a `.env` file in the root directory to configure your environment variables. You can use the following variables:
 
-개발 모드 실행 (Electron + Vite):
+```env
+# URL of your backend server
+VITE_API_URL=http://localhost:8000
+# OR
+VITE_BACKEND_URL=http://localhost:8000
+```
+
+> **Note:** If no environment variable is set, the development server defaults to proxying requests to `http://192.168.1.33:8000` as configured in `vite.config.ts`.
+
+### Running the Application
+
+To start the application in development mode:
 
 ```bash
 npm run dev
 ```
 
-배포용 빌드 생성:
+This command will start the Vite development server and launch the Electron application.
+
+## 🏗️ Building for Production
+
+To build the application for production (creation of an installer/executable):
 
 ```bash
 npm run build
 ```
 
-빌드 완료 후 `release` 디렉토리에 설치 파일이 생성됩니다.
+This script runs the following steps:
+1.  Compiles TypeScript code (`tsc -b`).
+2.  Builds the Vite frontend (`vite build`).
+3.  Packages the Electron app using `electron-builder`.
 
-## 📂 프로젝트 구조 (Project Structure)
+The output files (installers, executables) will be located in the `release` directory.
+
+## 📂 Project Structure
 
 ```
-uri-tomo/
-├── electron/        # Electron 메인 프로세스 코드
-├── src/             # React 애플리케이션 소스 코드
-│   ├── app/         # 페이지 및 앱 로직
-│   ├── components/  # 재사용 가능한 UI 컴포넌트
+├── electron/          # Electron main and preload scripts
+├── src/
+│   ├── app/           # Main application logic
+│   │   ├── api/       # API clients and types
+│   │   ├── components/# Reusable React components
+│   │   ├── hooks/     # Custom React hooks
+│   │   ├── pages/     # Application pages (Login, Meeting, etc.)
+│   │   └── meeting/   # LiveKit integration and meeting logic
+│   ├── assets/        # Static assets
 │   └── ...
-├── dist/            # 빌드된 웹 에셋
-├── release/         # 빌드된 Electron 애플리케이션
-├── public/          # 정적 파일
-└── ...
+├── dist/              # Built frontend assets
+├── dist-electron/     # Compiled Electron scripts
+└── release/           # Packaged application output
 ```
 
-## 📝 라이선스
+## 📝 License
 
-이 프로젝트는 비공개(Private) 프로젝트입니다.
+This project is licensed under the terms found in the [LICENSE](LICENSE) file.
