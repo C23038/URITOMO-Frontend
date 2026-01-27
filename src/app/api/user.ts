@@ -1,5 +1,5 @@
 import apiClient from './client';
-import { MainDataResponse, AddFriendRequest, AddFriendResponse } from './types';
+import { MainDataResponse, AddFriendRequest, AddFriendResponse, UserProfile } from './types';
 
 export const userApi = {
     /**
@@ -19,4 +19,21 @@ export const userApi = {
         const payload: AddFriendRequest = { email };
         return apiClient.post('/user/friend/add', payload);
     },
+
+    /**
+     * 내 프로필 정보를 조회합니다.
+     */
+    getProfile: async (): Promise<UserProfile> => {
+        return apiClient.get('/user/profile');
+    },
+
+    /**
+     * 프로필 정보를 수정합니다.
+     * @param data 수정할 데이터 (이름, 언어, 국가 등)
+     */
+    updateProfile: async (data: Partial<UserProfile>): Promise<UserProfile> => {
+        return apiClient.patch('/user/profile', data);
+    },
+
+
 };
