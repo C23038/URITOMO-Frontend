@@ -113,7 +113,13 @@ ${JSON.stringify({
           // 토큰 삭제 및 로그인 페이지로 리다이렉트 처리 가능
           localStorage.removeItem('uri-tomo-token');
           // window.location.href = '/login'; // 필요 시 주석 해제
-          toast.error(getTranslation('sessionExpired'));
+
+          // 로그인 실패인 경우 (URL 확인)
+          if (error.config?.url?.includes('/general_login')) {
+            toast.error(getTranslation('noRegisteredUser'));
+          } else {
+            toast.error(getTranslation('sessionExpired'));
+          }
           break;
         case 403: // 권한 없음
           toast.error(getTranslation('accessDenied'));

@@ -233,6 +233,7 @@ export const translations: Record<string, Record<Language, string>> = {
 
     // API Errors
     sessionExpired: { ja: 'セッションが期限切れです。再度ログインしてください。', ko: '세션이 만료되었습니다. 다시 로그인해주세요.', en: 'Session expired. Please login again.' },
+    noRegisteredUser: { ja: '登録された会員情報がありません', ko: '등록된 회원 정보가 없습니다', en: 'No registered member information found' },
     accessDenied: { ja: 'アクセスが拒否されました。', ko: '접근 권한이 없습니다.', en: 'Access denied.' },
     serverError: { ja: 'サーバーエラーが発生しました。後でもう一度お試しください。', ko: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', en: 'Server error occurred. Please try again later.' },
     unknownError: { ja: '不明なエラーが発生しました。', ko: '알 수 없는 오류가 발생했습니다.', en: 'Unknown error occurred.' },
