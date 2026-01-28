@@ -21,11 +21,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const savedUser = localStorage.getItem("uri-tomo-user");
-    if (savedUser) {
-      setIsLoggedIn(true);
-    }
+    // Always start at login page
     setIsLoading(false);
   }, []);
 
