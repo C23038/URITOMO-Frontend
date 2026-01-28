@@ -4,7 +4,6 @@ export interface UserProfile {
   email: string;
   display_name: string; // Python: name -> JSON: display_name (확인 필요, 보통 name 그대로 옴)
   picture?: string;
-  locale?: string;
 }
 
 // 로그인 성공 시 받는 응답 (backend TokenResponse 참고)
@@ -40,6 +39,7 @@ export interface SignupRequest {
 export interface MainUser {
   display_name: string;
   email: string;
+  lang: string;
 }
 
 export interface Friend {
@@ -51,6 +51,31 @@ export interface Friend {
 export interface Room {
   id: string;
   name: string;
+}
+
+export interface RoomMember {
+  id: string;
+  name: string;
+  status: string;
+  locale?: string;
+}
+
+export interface RoomDetailResponse {
+  id: string;
+  name: string;
+  members: RoomMember[];
+  participant_count: number;
+}
+
+// Room member management
+export interface AddRoomMemberRequest {
+  email: string;
+}
+
+export interface AddRoomMemberResponse {
+  id: string;
+  name: string;
+  locale: string;
 }
 
 export interface MainDataResponse {
@@ -68,4 +93,15 @@ export interface LivekitTokenRequest {
 export interface LivekitTokenResponse {
   url: string;
   token: string;
+}
+
+// 친구 추가 관련 타입
+export interface AddFriendRequest {
+  email: string;
+}
+
+export interface AddFriendResponse {
+  name: string;
+  email: string;
+  lang: string;
 }

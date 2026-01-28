@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import {
   Home,
   Users,
@@ -36,9 +36,11 @@ import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { ProfileSettingsModal, SystemSettingsModal } from '../components/SettingsModals';
 import { toast } from 'sonner';
-
 import { useMeetingSocket } from '../meeting/hooks/useMeetingSocket';
 import { ChatMessage } from '../meeting/types';
+import { useTranslation } from '../hooks/useTranslation';
+import { roomApi } from '../api/room';
+import { RoomMember } from '../api/types';
 
 /* 
 interface ChatMessage {
@@ -57,6 +59,7 @@ interface Participant {
   name: string;
   avatar?: string;
   isOnline: boolean;
+  locale?: string;
 }
 
 interface Room {
@@ -107,6 +110,7 @@ export function MeetingRoom() {
   const [roomNotifications, setRoomNotifications] = useState(true);
   const [showMembersList, setShowMembersList] = useState(false);
   const [showMembersPanel, setShowMembersPanel] = useState(false);
+  const [roomDetail, setRoomDetail] = useState<{ participant_count: number } | null>(null);
 
   // Additional profile settings states
   const [userAvatar, setUserAvatar] = useState('');
@@ -114,11 +118,90 @@ export function MeetingRoom() {
   const [editedUserName, setEditedUserName] = useState('');
   const [editedUserAvatar, setEditedUserAvatar] = useState('');
   const [editedAvatarType, setEditedAvatarType] = useState<'emoji' | 'image' | 'none'>('none');
-  const [systemLanguage, setSystemLanguage] = useState<'ja' | 'ko' | 'en'>('ja');
+  const { t, language: systemLanguage, setSystemLanguage } = useTranslation();
+
+  // Add Member Modal State
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [isAddingMember, setIsAddingMember] = useState(false);
 
   const handleJoinMeeting = () => {
     // 토큰 발급 없이 바로 장치 설정(Setup) 화면으로 이동
     navigate(`/meeting-setup/${id}`);
+  };
+
+  // Helper: Get country flag from locale
+  const getCountryFlag = (locale?: string): string => {
+    if (!locale) return '🌐';
+    const lowerLocale = locale.toLowerCase();
+    if (lowerLocale === 'ja' || lowerLocale === 'jp') return '🇯🇵';
+    if (lowerLocale === 'ko' || lowerLocale === 'kr') return '🇰🇷';
+    if (lowerLocale === 'en' || lowerLocale === 'us') return '🇺🇸';
+    return '🌐';
+  };
+
+  // Handle Add Member
+  const handleAddMember = async () => {
+    if (!newMemberEmail.trim()) {
+      toast.error(t('enterEmail'));
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newMemberEmail)) {
+      toast.error(t('validEmail'));
+      return;
+    }
+
+    if (!id) {
+      toast.error(t('roomIdMissing'));
+      return;
+    }
+
+    setIsAddingMember(true);
+
+    try {
+      const result = await roomApi.addMember(id, newMemberEmail);
+
+      // Add new member to participants list
+      const newParticipant: Participant = {
+        id: result.id,
+        name: result.name,
+        isOnline: false,
+        locale: result.locale,
+      };
+
+      setParticipants([...participants, newParticipant]);
+
+      toast.success(t('memberAdded'), {
+        description: `${result.name} (${result.locale})`,
+        duration: 4000,
+      });
+
+      setShowAddMemberModal(false);
+      setNewMemberEmail('');
+    } catch (error: any) {
+      console.error('Failed to add member:', error);
+
+      if (error.response?.status === 404) {
+        const detail = error.response?.data?.detail || '';
+        if (detail.includes('User')) {
+          toast.error(t('emailNotFound'));
+        } else if (detail.includes('Room')) {
+          toast.error(t('roomNotFound'));
+        } else {
+          toast.error(t('notFound'));
+        }
+      } else if (error.response?.status === 409) {
+        toast.error(t('memberAlreadyExists'));
+      } else if (error.response?.status === 403) {
+        toast.error(t('noPermission'));
+      } else {
+        toast.error(t('memberAddFailed'));
+      }
+    } finally {
+      setIsAddingMember(false);
+    }
   };
 
   // Listen for sidebar button clicks
@@ -167,63 +250,33 @@ export function MeetingRoom() {
       setActiveTab(location.state.activeTab);
     }
 
-    // Load rooms
-    const savedRooms = JSON.parse(localStorage.getItem('uri-tomo-rooms') || '[]');
-    setRooms(savedRooms);
-
-    // Find current room
-    const room = savedRooms.find((r: Room) => r.id === id);
-    if (room) {
-      setCurrentRoom(room);
-    }
-
-    // Load user info
-    const savedUser = localStorage.getItem('uri-tomo-user');
-    const savedProfile = localStorage.getItem('uri-tomo-user-profile');
-    const savedLanguage = localStorage.getItem('uri-tomo-system-language');
-
-    if (savedProfile) {
+    // Load room details from API
+    const fetchRoomDetail = async () => {
+      if (!id) return;
+      setIsLoading(true);
       try {
-        const profile = JSON.parse(savedProfile);
-        setUserName(profile.name || 'ユーザー');
-        setUserEmail(profile.email || savedUser || '');
-        setUserAvatar(profile.avatar || '');
-        setAvatarType(profile.avatarType || 'none');
-      } catch (e) {
-        if (savedUser) {
-          setUserEmail(savedUser);
-          setUserName(savedUser.split('@')[0]);
-        }
+        const data = await roomApi.getRoomDetail(id);
+        setCurrentRoom({ id: data.id, name: data.name });
+        setRoomName(data.name);
+
+        // Map API members to local Participant type
+        const apiParticipants = data.members.map((m: RoomMember) => ({
+          id: m.id,
+          name: m.name,
+          isOnline: m.status === 'online',
+          locale: m.locale,
+        }));
+        setParticipants(apiParticipants);
+        setRoomDetail({ participant_count: data.participant_count });
+      } catch (error) {
+        console.error('Failed to fetch room detail:', error);
+        toast.error(t('roomLoadError'));
+      } finally {
+        setIsLoading(false);
       }
-    } else if (savedUser) {
-      setUserName(savedUser.split('@')[0]);
-      setUserEmail(savedUser);
-    }
+    };
 
-    if (savedLanguage) {
-      setSystemLanguage(savedLanguage as 'ja' | 'ko' | 'en');
-    }
-
-    // Load participants from contacts
-    const savedContacts = JSON.parse(localStorage.getItem('uri-tomo-contacts') || '[]');
-    const contactParticipants = savedContacts.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      isOnline: c.status === 'online',
-    }));
-    setParticipants(contactParticipants);
-
-    // Load chat messages for this room
-    // WebSocket hook handles messages now
-    // const savedMessages = JSON.parse(
-    //   localStorage.getItem(`uri-tomo-chat-${id}`) || '[]'
-    // );
-    // setMessages(
-    //   savedMessages.map((m: any) => ({
-    //     ...m,
-    //     timestamp: new Date(m.timestamp),
-    //   }))
-    // );
+    fetchRoomDetail();
 
     // Load meeting minutes for this room
     const savedMinutes = JSON.parse(
@@ -305,7 +358,7 @@ export function MeetingRoom() {
 
   const handleTranslateMessage = (messageId: string) => {
     // Mock translation removed. Real-time translation is handled by WebSocket.
-    toast.info('AI自動翻訳が有効です。翻訳は自動的に表示されます。');
+    toast.info(t('aiAutoTranslateEnabled'));
   };
 
   const handleRoomChange = (roomId: string) => {
@@ -319,11 +372,11 @@ export function MeetingRoom() {
 
   const handleSaveRoomSettings = () => {
     if (!roomName.trim()) {
-      alert('Room名を入力してください');
+      alert(t('enterRoomName'));
       return;
     }
 
-    // Update rooms in localStorage
+    // Update rooms in localStorage (Keeping as backup for now, but should ideally use API)
     const savedRooms = JSON.parse(localStorage.getItem('uri-tomo-rooms') || '[]');
     const updatedRooms = savedRooms.map((r: Room) =>
       r.id === id ? { ...r, name: roomName } : r
@@ -337,7 +390,7 @@ export function MeetingRoom() {
     setShowRoomSettings(false);
   };
 
-  const participantCount = participants.filter(p => p.isOnline).length + 1; // +1 for current user
+  const participantCount = roomDetail?.participant_count || (participants.filter(p => p.isOnline).length + 1);
 
   return (
     <main className="flex-1 flex relative">
@@ -367,12 +420,19 @@ export function MeetingRoom() {
 
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setShowRoomSettings(true)}
+                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-all"
+                title={t('roomSettings')}
+              >
+                <Settings className="h-5 w-5" />
+              </button>
+              <button
                 onClick={() => setShowMembersPanel(!showMembersPanel)}
                 className="px-4 py-2 bg-yellow-100 rounded-full hover:bg-yellow-200 transition-colors cursor-pointer"
                 title="メンバー一覧を表示"
               >
                 <span className="text-sm font-semibold text-yellow-800">
-                  {participantCount}人
+                  {participantCount}{t('membersSuffix')}
                 </span>
               </button>
             </div>
@@ -389,14 +449,14 @@ export function MeetingRoom() {
                   }`}
                 onClick={() => setActiveTab('documents')}
               >
-                Documents
+                {t('documents')}
               </button>
               <button
                 className={`px-4 py-2 font-semibold text-gray-900 ${activeTab === 'chat' ? 'border-b-2 border-yellow-400' : ''
                   }`}
                 onClick={() => setActiveTab('chat')}
               >
-                Chat
+                {t('chat')}
               </button>
             </div>
 
@@ -409,7 +469,7 @@ export function MeetingRoom() {
                     type="text"
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
-                    placeholder="キーワード検索"
+                    placeholder={t('keywordSearch')}
                     className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent w-64"
                   />
                 </div>
@@ -420,7 +480,7 @@ export function MeetingRoom() {
                 className="bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white font-semibold px-6"
               >
                 <Video className="h-5 w-5 mr-2" />
-                Meeting start
+                {t('meetingStart')}
               </Button>
             </div>
           </div>
@@ -435,10 +495,10 @@ export function MeetingRoom() {
                       <FileText className="h-8 w-8 text-white" />
                     </div>
                     <p className="text-gray-500">
-                      議事録はまだありません
+                      {t('noMinutes')}
                     </p>
                     <p className="text-sm text-gray-400 mt-1">
-                      ミーティングを開始すると、議事録が自動的に作成されます
+                      {t('minutesAutoCreated')}
                     </p>
                   </div>
                 </div>
@@ -503,10 +563,10 @@ export function MeetingRoom() {
                       <MessageCircle className="h-8 w-8 text-white" />
                     </div>
                     <p className="text-gray-500">
-                      メッセージはまだありません
+                      {t('noMessages')}
                     </p>
                     <p className="text-sm text-gray-400 mt-1">
-                      最初のメッセージを送信してみましょう
+                      {t('firstMessagePrompt')}
                     </p>
                   </div>
                 </div>
@@ -524,7 +584,7 @@ export function MeetingRoom() {
                       <button
                         onClick={() => handleTranslateMessage(message.id)}
                         className="mt-7 p-1.5 rounded-full bg-white border border-gray-200 hover:bg-yellow-50 hover:border-yellow-300 transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
-                        title="翻訳"
+                        title={t('translation')}
                       >
                         <Languages className="h-3.5 w-3.5 text-yellow-600" />
                       </button>
@@ -569,7 +629,7 @@ export function MeetingRoom() {
                       <button
                         onClick={() => handleTranslateMessage(message.id)}
                         className="mt-7 p-1.5 rounded-full bg-white border border-gray-200 hover:bg-yellow-50 hover:border-yellow-300 transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
-                        title="翻訳"
+                        title={t('translation')}
                       >
                         <Languages className="h-3.5 w-3.5 text-yellow-600" />
                       </button>
@@ -594,7 +654,7 @@ export function MeetingRoom() {
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                       <Smile className="h-4 w-4 text-yellow-600" />
-                      スタンプを選択
+                      {t('selectSticker')}
                     </h4>
                     <button
                       onClick={() => setShowStickerPicker(false)}
@@ -609,7 +669,7 @@ export function MeetingRoom() {
                         key={sticker}
                         onClick={() => handleStickerSelect(sticker)}
                         className="text-3xl p-3 rounded-lg hover:bg-yellow-200 transition-all transform hover:scale-110 active:scale-95"
-                        title="スタンプを送信"
+                        title={t('addSticker')}
                       >
                         {sticker}
                       </button>
@@ -623,7 +683,7 @@ export function MeetingRoom() {
                 <button
                   onClick={handleFileAttach}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="ファイルを添付"
+                  title={t('attachFile')}
                 >
                   <Paperclip className="h-5 w-5 text-gray-600" />
                 </button>
@@ -635,7 +695,7 @@ export function MeetingRoom() {
                     ? 'bg-yellow-200 text-yellow-700'
                     : 'hover:bg-gray-100 text-gray-600'
                     }`}
-                  title="スタンプを選択"
+                  title={t('selectSticker')}
                 >
                   <Smile className="h-5 w-5" />
                 </button>
@@ -644,7 +704,7 @@ export function MeetingRoom() {
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="メッセージを入力..."
+                  placeholder={t('typeMessage')}
                   className="flex-1 border-gray-300 focus:ring-2 focus:ring-yellow-400"
                 />
                 <button
@@ -657,7 +717,7 @@ export function MeetingRoom() {
               </div>
               <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                 <Bot className="h-3 w-3 text-yellow-600" />
-                AI翻訳機能でメッセージを自動翻訳します
+                {t('aiTranslateFeature')}
               </p>
             </div>
           )}
@@ -674,20 +734,10 @@ export function MeetingRoom() {
           editedUserName={editedUserName}
           editedUserAvatar={editedUserAvatar}
           editedAvatarType={editedAvatarType}
-          systemLanguage={systemLanguage}
           onNameChange={setEditedUserName}
           onAvatarChange={setEditedUserAvatar}
           onAvatarTypeChange={setEditedAvatarType}
-          onAvatarImageUpload={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setEditedUserAvatar(reader.result as string);
-              };
-              reader.readAsDataURL(file);
-            }
-          }}
+
           onSave={() => {
             setUserName(editedUserName);
             setUserAvatar(editedUserAvatar);
@@ -700,7 +750,7 @@ export function MeetingRoom() {
             };
             localStorage.setItem('uri-tomo-user-profile', JSON.stringify(profile));
             window.dispatchEvent(new Event('profile-updated'));
-            toast.success('プロフィールが更新されました');
+            toast.success(t('profileUpdated'));
             setShowProfileSettings(false);
           }}
         />
@@ -709,8 +759,6 @@ export function MeetingRoom() {
         <SystemSettingsModal
           isOpen={showSystemSettings}
           onClose={() => setShowSystemSettings(false)}
-          systemLanguage={systemLanguage}
-          onLanguageChange={setSystemLanguage}
         />
       </div>
 
@@ -727,7 +775,7 @@ export function MeetingRoom() {
           <div className="bg-gradient-to-r from-yellow-400 to-amber-400 px-6 py-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Users className="h-5 w-5" />
-              メンバー一覧
+              {t('membersList')}
             </h2>
             <button
               onClick={() => setShowMembersPanel(false)}
@@ -740,13 +788,11 @@ export function MeetingRoom() {
           {/* Add Member Button */}
           <div className="px-4 py-4 border-b border-gray-200">
             <button
-              onClick={() => {
-                toast.info('メンバー追加機能は開発中です');
-              }}
+              onClick={() => setShowAddMemberModal(true)}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white font-semibold rounded-lg transition-all"
             >
               <UserPlus className="h-5 w-5" />
-              メンバーを追加
+              {t('addMember')}
             </button>
           </div>
 
@@ -762,10 +808,10 @@ export function MeetingRoom() {
                   <p className="font-bold text-gray-900 truncate">
                     {userName}
                   </p>
-                  <p className="text-sm text-gray-600">あなた</p>
+                  <p className="text-sm text-gray-600">{t('you')}</p>
                   <div className="flex items-center gap-1 mt-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    <span className="text-xs text-gray-600">オンライン</span>
+                    <span className="text-lg">{getCountryFlag(systemLanguage)}</span>
+                    <span className="text-xs text-gray-600">{systemLanguage?.toUpperCase() || 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -786,8 +832,8 @@ export function MeetingRoom() {
                       {participant.name}
                     </p>
                     <div className="flex items-center gap-1 mt-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full" />
-                      <span className="text-xs text-gray-600">オンライン</span>
+                      <span className="text-lg">{getCountryFlag(participant.locale)}</span>
+                      <span className="text-xs text-gray-600">{participant.locale?.toUpperCase() || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -799,7 +845,7 @@ export function MeetingRoom() {
               <>
                 <div className="pt-4 pb-2">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    オフライン ({participants.filter(p => !p.isOnline).length})
+                    {t('offline')} ({participants.filter(p => !p.isOnline).length})
                   </h3>
                 </div>
                 {participants.filter(p => !p.isOnline).map((participant) => (
@@ -816,8 +862,8 @@ export function MeetingRoom() {
                           {participant.name}
                         </p>
                         <div className="flex items-center gap-1 mt-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full" />
-                          <span className="text-xs text-gray-500">オフライン</span>
+                          <span className="text-lg opacity-60">{getCountryFlag(participant.locale)}</span>
+                          <span className="text-xs text-gray-500">{participant.locale?.toUpperCase() || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
@@ -830,10 +876,145 @@ export function MeetingRoom() {
           {/* Panel Footer */}
           <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
             <p className="text-xs text-gray-600 text-center">
-              合計 {participantCount} 人のメンバー
+              {t('totalMembers')} {participantCount} {t('membersSuffix')}
             </p>
           </div>
         </motion.div>
+      )}
+
+      {/* Room Settings Modal */}
+      {showRoomSettings && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+          >
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-yellow-400 to-amber-400">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Settings className="h-6 w-6" />
+                  {t('roomSettings') || 'ルーム設定'}
+                </h2>
+                <button
+                  onClick={() => setShowRoomSettings(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Room Name Change */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                  <Edit3 className="h-4 w-4" />
+                  {t('changeRoomName') || 'ルーム名の 변경'}
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    value={roomName}
+                    onChange={(e) => setRoomName(e.target.value)}
+                    placeholder={t('enterRoomName') || 'ルーム名を入力'}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={() => {
+                      toast.info(t('featureUnderDevelopment') || '開発中の機能です');
+                    }}
+                    className="bg-gray-900 hover:bg-black text-white px-4"
+                  >
+                    {t('save') || '保存'}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-6">
+                <button
+                  onClick={() => {
+                    toast.info(t('featureUnderDevelopment') || '開発中の機能입니다');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 font-bold transition-all"
+                >
+                  <LogOut className="h-5 w-5" />
+                  {t('leaveRoom') || 'ルームから退出'}
+                </button>
+                <p className="text-xs text-gray-400 mt-2 text-center">
+                  {t('leaveRoomDisclaimer') || '退出するとこのルームの履歴にアクセスできなくなります'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 px-6 py-4 flex justify-end">
+              <Button
+                onClick={() => setShowRoomSettings(false)}
+                variant="outline"
+                className="font-semibold"
+              >
+                {t('close') || '閉じる'}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <UserPlus className="h-6 w-6 text-yellow-600" />
+                {t('addMember')}
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label htmlFor="member-email" className="text-base font-semibold text-gray-900 block mb-2">
+                  {t('email')}
+                </label>
+                <Input
+                  id="member-email"
+                  type="email"
+                  value={newMemberEmail}
+                  onChange={(e) => setNewMemberEmail(e.target.value)}
+                  placeholder="member@example.com"
+                  className="w-full"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !isAddingMember) {
+                      handleAddMember();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <Button
+                onClick={() => {
+                  setShowAddMemberModal(false);
+                  setNewMemberEmail('');
+                }}
+                variant="outline"
+                className="flex-1"
+                disabled={isAddingMember}
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                onClick={handleAddMember}
+                className="flex-1 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 text-white"
+                disabled={isAddingMember}
+              >
+                {isAddingMember ? t('adding') || '追加中...' : t('add')}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
       )}
     </main>
   );

@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import {
   Video,
   VideoOff,
   Mic,
   MicOff,
   Settings,
-  ArrowLeft, // 未使用ですが元のコードに合わせて残しています
-  Check,     // 未使用ですが元のコードに合わせて残しています
+  ArrowLeft,
+  Check,
   Volume2,
   VolumeX
 } from 'lucide-react';
@@ -16,22 +16,20 @@ import { Button } from '../components/ui/button';
 import { ProfileSettingsModal, SystemSettingsModal } from '../components/SettingsModals';
 import { toast } from 'sonner';
 import { meetingApi } from '../api/meeting';
-
-// 変更点: LiveKitクライアントからトラック作成関数をインポート
 import { createLocalVideoTrack, LocalVideoTrack } from 'livekit-client';
+import { useTranslation } from '../hooks/useTranslation';
 
 export function MeetingSetup() {
   const { id } = useParams();
   const navigate = useNavigate();
-  // 変更点: プレビュー用のvideo要素への参照を作成
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { t, language } = useTranslation();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isAudioOn, setIsAudioOn] = useState(true);
 
-  // 変更点: 実際のデバイス情報を管理するStateに変更
   const [mics, setMics] = useState<MediaDeviceInfo[]>([]);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([]);
@@ -40,7 +38,6 @@ export function MeetingSetup() {
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [selectedSpeakerId, setSelectedSpeakerId] = useState<string>('');
 
-  // 変更点: プレビュー用のトラックを管理
   const [previewTrack, setPreviewTrack] = useState<LocalVideoTrack | null>(null);
 
   const [userName, setUserName] = useState(() => {
@@ -57,7 +54,6 @@ export function MeetingSetup() {
   const [editedUserName, setEditedUserName] = useState('');
   const [editedUserAvatar, setEditedUserAvatar] = useState('');
   const [editedAvatarType, setEditedAvatarType] = useState<'emoji' | 'image' | 'none'>('none');
-  const [systemLanguage, setSystemLanguage] = useState<'ja' | 'ko' | 'en'>('ja');
 
   // Listen for sidebar button clicks
   useEffect(() => {
@@ -101,7 +97,6 @@ export function MeetingSetup() {
   useEffect(() => {
     const savedUser = localStorage.getItem('uri-tomo-user');
     const savedProfile = localStorage.getItem('uri-tomo-user-profile');
-    const savedLanguage = localStorage.getItem('uri-tomo-system-language');
 
     if (savedProfile) {
       try {
@@ -120,20 +115,12 @@ export function MeetingSetup() {
       setUserEmail(savedUser);
       setUserName(savedUser.split('@')[0]);
     }
-
-    if (savedLanguage) {
-      setSystemLanguage(savedLanguage as 'ja' | 'ko' | 'en');
-    }
   }, []);
 
-  // 変更点: 実際のデバイスリストを取得する処理を追加
   useEffect(() => {
     const getDevices = async () => {
       try {
-        // デバイスラベルを取得するために権限をリクエスト
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-
-        // デバイス一覧を取得
         const devices = await navigator.mediaDevices.enumerateDevices();
 
         const micList = devices.filter(d => d.kind === 'audioinput');
@@ -144,31 +131,27 @@ export function MeetingSetup() {
         setCameras(camList);
         setSpeakers(spkList);
 
-        // デフォルト選択
         if (!selectedMicId && micList.length > 0) setSelectedMicId(micList[0].deviceId);
         if (!selectedCameraId && camList.length > 0) setSelectedCameraId(camList[0].deviceId);
         if (!selectedSpeakerId && spkList.length > 0) setSelectedSpeakerId(spkList[0].deviceId);
 
-        // 権限取得用のストリームはすぐに停止
         stream.getTracks().forEach(t => t.stop());
 
       } catch (e) {
         console.error("Error accessing media devices:", e);
-        toast.error("カメラ・マイクへのアクセスが許可されていません");
+        toast.error(t('micPermissionError'));
       }
     };
 
     getDevices();
-  }, []); // 初回のみ実行
+  }, [t]);
 
-  // 変更点: カメラプレビューの開始・停止処理
   useEffect(() => {
     let track: LocalVideoTrack | null = null;
 
     const startPreview = async () => {
       if (isVideoOn && selectedCameraId) {
         try {
-          // LiveKitの機能でローカルトラックを作成
           track = await createLocalVideoTrack({
             deviceId: selectedCameraId,
             resolution: { width: 1280, height: 720 }
@@ -186,19 +169,16 @@ export function MeetingSetup() {
     if (isVideoOn) {
       startPreview();
     } else {
-      // カメラオフの場合はプレビューをクリア
       setPreviewTrack(null);
     }
 
     return () => {
-      // クリーンアップ：トラックを停止
       if (track) {
         track.stop();
       }
     };
   }, [isVideoOn, selectedCameraId]);
 
-  // refが変更された場合（再レンダリング時など）にトラックを再アタッチ
   useEffect(() => {
     if (previewTrack && videoRef.current) {
       previewTrack.attach(videoRef.current);
@@ -208,18 +188,13 @@ export function MeetingSetup() {
   const handleJoinMeeting = async () => {
     setIsLoading(true);
     try {
-      // 変更点: 参加前にプレビュー用トラックを停止（多重起動防止）
       if (previewTrack) {
         previewTrack.stop();
       }
 
-      let token, url;
-
-      // 백엔드로부터 LiveKit 토큰 및 URL 요청
       console.log(`[MeetingSetup] Requesting token for room_id: ${id}`);
       const data = await meetingApi.getLivekitToken(id || '');
-      token = data.token;
-      url = data.url;
+      const { token, url } = data;
 
       if (!token || !url) throw new Error('Token generation failed');
 
@@ -230,7 +205,6 @@ export function MeetingSetup() {
           participantName: userName,
           initialMicOn: isMicOn,
           initialVideoOn: isVideoOn,
-          // 変更点: 選択されたデバイスIDを渡す
           audioDeviceId: selectedMicId,
           videoDeviceId: selectedCameraId,
           audioOutputDeviceId: selectedSpeakerId
@@ -239,7 +213,7 @@ export function MeetingSetup() {
 
     } catch (error) {
       console.error('Failed to join:', error);
-      toast.error('会議に参加できませんでした。');
+      toast.error(t('joinError'));
     } finally {
       setIsLoading(false);
     }
@@ -256,7 +230,7 @@ export function MeetingSetup() {
           {/* Header */}
           <div className="bg-gradient-to-r from-yellow-400 to-amber-400 px-6 py-4">
             <div className="flex items-center justify-center">
-              <h1 className="text-xl font-bold text-white">デバイス設定</h1>
+              <h1 className="text-xl font-bold text-white">{t('deviceSettings')}</h1>
             </div>
           </div>
 
@@ -264,10 +238,10 @@ export function MeetingSetup() {
           <div className="p-8">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                ミーティングに参加する準備ができました
+                {t('readyToJoin')}
               </h2>
               <p className="text-gray-600">
-                カメラとマイクの設定を確認してください
+                {t('checkSettings')}
               </p>
             </div>
 
@@ -278,12 +252,11 @@ export function MeetingSetup() {
                 animate={{ opacity: 1, y: 0 }}
                 className="relative aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-lg border-2 border-gray-700"
               >
-                {/* 変更点: 実際の映像を表示するvideo要素 */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   {isVideoOn ? (
                     <video
                       ref={videoRef}
-                      className="w-full h-full object-cover transform -scale-x-100" // 鏡像反転
+                      className="w-full h-full object-cover transform -scale-x-100"
                       autoPlay
                       muted
                       playsInline
@@ -291,7 +264,7 @@ export function MeetingSetup() {
                   ) : (
                     <div className="w-full h-full bg-gray-800 flex flex-col items-center justify-center gap-4">
                       <VideoOff className="h-16 w-16 text-gray-500" />
-                      <p className="text-gray-400 text-lg">カメラはオフです</p>
+                      <p className="text-gray-400 text-lg">{t('cameraOff')}</p>
                     </div>
                   )}
                 </div>
@@ -300,7 +273,7 @@ export function MeetingSetup() {
                 <div className="absolute bottom-4 left-4">
                   <div className="bg-black/70 backdrop-blur-sm px-4 py-2 rounded-lg">
                     <span className="text-white font-semibold">
-                      {userName} (あなた)
+                      {userName} ({t('you')})
                     </span>
                   </div>
                 </div>
@@ -335,9 +308,9 @@ export function MeetingSetup() {
                       )}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">マイク</p>
+                      <p className="font-semibold text-gray-900">{t('mic')}</p>
                       <p className="text-sm text-gray-600">
-                        {isMicOn ? 'オン' : 'オフ'}
+                        {isMicOn ? t('on') : t('off')}
                       </p>
                     </div>
                   </div>
@@ -348,12 +321,11 @@ export function MeetingSetup() {
                       : 'bg-red-500 hover:bg-red-600 text-white'
                       }`}
                   >
-                    {isMicOn ? 'オフにする' : 'オンにする'}
+                    {isMicOn ? t('turnOff') : t('turnOn')}
                   </button>
                 </div>
                 <div className="pl-16">
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">デバイス選択</label>
-                  {/* 変更点: 実際のデバイスリストを表示 */}
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('selectDevice')}</label>
                   <select
                     value={selectedMicId}
                     onChange={(e) => setSelectedMicId(e.target.value)}
@@ -381,9 +353,9 @@ export function MeetingSetup() {
                       )}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">カメラ</p>
+                      <p className="font-semibold text-gray-900">{t('camera')}</p>
                       <p className="text-sm text-gray-600">
-                        {isVideoOn ? 'オン' : 'オフ'}
+                        {isVideoOn ? t('on') : t('off')}
                       </p>
                     </div>
                   </div>
@@ -394,12 +366,11 @@ export function MeetingSetup() {
                       : 'bg-red-500 hover:bg-red-600 text-white'
                       }`}
                   >
-                    {isVideoOn ? 'オフにする' : 'オンにする'}
+                    {isVideoOn ? t('turnOff') : t('turnOn')}
                   </button>
                 </div>
                 <div className="pl-16">
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">デバイス選択</label>
-                  {/* 変更点: 実際のデバイスリストを表示 */}
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('selectDevice')}</label>
                   <select
                     value={selectedCameraId}
                     onChange={(e) => setSelectedCameraId(e.target.value)}
@@ -427,9 +398,9 @@ export function MeetingSetup() {
                       )}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">スピーカー</p>
+                      <p className="font-semibold text-gray-900">{t('speaker')}</p>
                       <p className="text-sm text-gray-600">
-                        {isAudioOn ? 'オン' : 'オフ'}
+                        {isAudioOn ? t('on') : t('off')}
                       </p>
                     </div>
                   </div>
@@ -440,12 +411,11 @@ export function MeetingSetup() {
                       : 'bg-red-500 hover:bg-red-600 text-white'
                       }`}
                   >
-                    {isAudioOn ? 'オフにする' : 'オンにする'}
+                    {isAudioOn ? t('turnOff') : t('turnOn')}
                   </button>
                 </div>
                 <div className="pl-16">
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">デバイス選択</label>
-                  {/* 変更点: 実際のデバイスリストを表示（スピーカーはブラウザによって制限あり） */}
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('selectDevice')}</label>
                   <select
                     value={selectedSpeakerId}
                     onChange={(e) => setSelectedSpeakerId(e.target.value)}
@@ -459,7 +429,7 @@ export function MeetingSetup() {
                         </option>
                       ))
                     ) : (
-                      <option value="">デフォルト (ブラウザの設定を使用)</option>
+                      <option value="">{t('defaultDevice')}</option>
                     )}
                   </select>
                 </div>
@@ -476,7 +446,7 @@ export function MeetingSetup() {
                 variant="outline"
                 className="px-8 py-6 text-lg font-semibold border-2 border-gray-300 hover:bg-gray-50"
               >
-                キャンセル
+                {t('cancel')}
               </Button>
               <Button
                 onClick={handleJoinMeeting}
@@ -486,10 +456,10 @@ export function MeetingSetup() {
                 {isLoading ? (
                   <span className="flex items-center gap-2">
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    接続中...
+                    {t('connecting')}
                   </span>
                 ) : (
-                  "ミーティングに参加"
+                  t('joinMeeting')
                 )}
               </Button>
             </div>
@@ -497,7 +467,7 @@ export function MeetingSetup() {
             {/* Info Message */}
             <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-800 text-center">
-                💡 ミーティング中でもいつでもカメラとマイクの設定を変更できます
+                💡 {t('changeSettingsAnytime')}
               </p>
             </div>
           </div>
@@ -515,20 +485,10 @@ export function MeetingSetup() {
         editedUserName={editedUserName}
         editedUserAvatar={editedUserAvatar}
         editedAvatarType={editedAvatarType}
-        systemLanguage={systemLanguage}
         onNameChange={setEditedUserName}
         onAvatarChange={setEditedUserAvatar}
         onAvatarTypeChange={setEditedAvatarType}
-        onAvatarImageUpload={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              setEditedUserAvatar(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-          }
-        }}
+
         onSave={() => {
           setUserName(editedUserName);
           setUserAvatar(editedUserAvatar);
@@ -541,7 +501,7 @@ export function MeetingSetup() {
           };
           localStorage.setItem('uri-tomo-user-profile', JSON.stringify(profile));
           window.dispatchEvent(new Event('profile-updated'));
-          toast.success('プロフィールが更新されました');
+          toast.success(t('profileUpdated'));
           setShowProfileSettings(false);
         }}
       />
@@ -549,8 +509,6 @@ export function MeetingSetup() {
       <SystemSettingsModal
         isOpen={showSystemSettings}
         onClose={() => setShowSystemSettings(false)}
-        systemLanguage={systemLanguage}
-        onLanguageChange={setSystemLanguage}
       />
     </div>
   );
