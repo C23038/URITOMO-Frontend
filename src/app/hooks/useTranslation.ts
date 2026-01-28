@@ -178,6 +178,7 @@ const translations: Record<string, Record<Language, string>> = {
     lineLoginComingSoon: { ja: 'ログインは準備中です。', ko: '로그인은 준비중입니다.', en: 'Login is coming soon.' },
     createAccountInfo: { ja: 'アカウントを作成すると、Uri-Tomoの日韓翻訳機能をフルに活用できます！', ko: '계정을 만들면 Uri-Tomo의 한일 번역 기능을 완전히 활용할 수 있습니다!', en: 'Create an account to fully utilize Uri-Tomo\'s Japanese-Korean translation features!' },
     resetLinkInfo: { ja: 'パスワードリセット用のリンクをメールで送信します。メールをご確認ください。', ko: '비밀번호 재설정 링크를 이메일로 보내드립니다. 이메일을 확인하세요.', en: 'We will send a password reset link to your email. Please check your inbox.' },
+    emailAlreadyExists: { ja: 'このメールアドレスは既に使用されています。', ko: '이미 존재하는 이메일 입니다.', en: 'Email already exists.' },
     // MeetingRoom
     noMinutes: { ja: '議事録はまだありません', ko: '회의록이 아직 없습니다', en: 'No minutes yet' },
     minutesAutoCreated: { ja: 'ミーティングを開始すると、議事録が自動的に作成されます', ko: '미팅을 시작하면 회의록이 자동으로 작성됩니다', en: 'Minutes are automatically created when meeting starts' },

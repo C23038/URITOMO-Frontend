@@ -137,8 +137,17 @@ export function Login({ onLogin }: LoginProps) {
       await handleAuthSuccess(response);
       setIsCreatingAccount(false);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign Up Error:', error);
+      if (
+        error.response?.status === 422 &&
+        error.response?.data?.error?.code === 'VALIDATION_ERROR' &&
+        error.response?.data?.error?.message === 'User with this email already exists'
+      ) {
+        toast.error(t('emailAlreadyExists'));
+      } else if (error.response?.status === 422) {
+        toast.error(error.response?.data?.error?.message || 'Validation Error');
+      }
     }
   };
 

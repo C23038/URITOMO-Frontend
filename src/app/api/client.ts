@@ -120,6 +120,9 @@ ${JSON.stringify({
         case 500: // 서버 에러
           toast.error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
           break;
+        case 422:
+          // Validation Error handled by component
+          break;
         default:
           toast.error(data?.detail || '알 수 없는 오류가 발생했습니다.');
       }
