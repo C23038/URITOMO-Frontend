@@ -176,6 +176,7 @@ export const translations: Record<string, Record<Language, string>> = {
     loginGoogleComingSoon: { ja: 'Google (準備中)', ko: 'Google (준비중)', en: 'Google (Coming Soon)' },
     lineLoginComingSoon: { ja: 'ログインは準備中です。', ko: '로그인은 준비중입니다.', en: 'Login is coming soon.' },
     createAccountInfo: { ja: 'アカウントを作成すると、Uri-Tomoの日韓翻訳機能をフルに活用できます！', ko: '계정을 만들면 Uri-Tomo의 한일 번역 기능을 완전히 활용할 수 있습니다!', en: 'Create an account to fully utilize Uri-Tomo\'s Japanese-Korean translation features!' },
+    preferredLanguage: { ja: '使用言語 (Language)', ko: '사용 언어 (Language)', en: 'Preferred Language' },
     resetLinkInfo: { ja: 'パスワードリセット用のリンクをメールで送信します。メールをご確認ください。', ko: '비밀번호 재설정 링크를 이메일로 보내드립니다. 이메일을 확인하세요.', en: 'We will send a password reset link to your email. Please check your inbox.' },
     emailAlreadyExists: { ja: 'このメールアドレスは既に使用されています。', ko: '이미 존재하는 이메일 입니다.', en: 'Email already exists.' },
     // MeetingRoom

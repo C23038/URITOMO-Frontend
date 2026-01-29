@@ -110,7 +110,7 @@ export function Login({ onLogin }: LoginProps) {
     const langMap = {
       ja: 'jp',
       ko: 'kr',
-      en: 'en'
+      en: 'us'
     };
 
     const signupData = {
@@ -530,7 +530,7 @@ export function Login({ onLogin }: LoginProps) {
               {/* Language Selection for Signup */}
               <div>
                 <Label htmlFor="signupLang" className="text-sm font-semibold text-gray-700 mb-2 block">
-                  Preferred Language (언어 설정)
+                  {t('preferredLanguage')}
                 </Label>
                 <div className="relative">
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
