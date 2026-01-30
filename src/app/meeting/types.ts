@@ -33,10 +33,11 @@ export interface TranslationEvent {
     timestamp: string;
     sequence: string;
     lang: string;
+    is_stt?: boolean;
 }
 
 // WebSocket Message Types
-export type WSMessageType = 'chat' | 'room_connected' | 'translation' | 'ping' | 'pong' | 'error';
+export type WSMessageType = 'chat' | 'room_connected' | 'translation' | 'ping' | 'pong' | 'error' | 'stt' | 'unknown_type';
 
 export interface WSMessage {
     type: WSMessageType;
