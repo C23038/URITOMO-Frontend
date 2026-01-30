@@ -727,57 +727,7 @@ function ActiveMeetingContent({
                     </div>
                   </div>
 
-                  {/* Description Section */}
-                  <div className="border-b border-gray-200 bg-white max-h-48 overflow-y-auto flex-shrink-0">
-                    <div className="sticky top-0 bg-white px-4 pt-4 pb-2 border-b border-gray-100"><div className="flex items-center gap-2"><Bot className="h-4 w-4 text-yellow-600" /><h4 className="font-bold text-gray-900 text-sm">{t('description')}</h4><span className="text-xs text-gray-500">({termExplanations.length}{t('termExplanationCount')})</span></div></div>
-                    <div className="p-4">
-                      {termExplanations.length === 0 ? (
-                        <div className="text-center py-4">
-                          <p className="text-xs text-gray-500">
-                            {t('noExplanations')}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {t('autoExplain')}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {termExplanations.map((term, index) => (
-                            <motion.div
-                              key={term.id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                              className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg p-3 border border-yellow-200"
-                            >
-                              <div className="flex items-start gap-2 mb-1">
-                                <div className="w-1.5 h-1.5 bg-yellow-600 rounded-full mt-1.5 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-bold text-sm text-gray-900">
-                                      {term.term}
-                                    </span>
-                                    <span className="text-xs text-gray-400">
-                                      {term.timestamp.toLocaleTimeString('ja-JP', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      })}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-gray-700 leading-relaxed">
-                                    {term.explanation}
-                                  </p>
-                                  <p className="text-xs text-yellow-700 mt-1">
-                                    💬 {term.detectedFrom}
-                                  </p>
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+
 
                   {/* Tab Navigation */}
                   <div className="flex border-b border-gray-200 bg-gray-50">
