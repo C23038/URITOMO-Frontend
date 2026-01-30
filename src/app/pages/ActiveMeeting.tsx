@@ -606,10 +606,10 @@ function ActiveMeetingContent({
                 <motion.div
                   animate={{
                     scale: isUriTomoSpeaking ? 1.02 : 1,
-                    borderColor: isUriTomoSpeaking ? '#FACC15' : 'transparent',
+                    borderColor: isUriTomoSpeaking ? '#FACC15' : 'rgba(250, 204, 21, 0)',
                     boxShadow: isUriTomoSpeaking ? '0 0 20px rgba(250, 204, 21, 0.4)' : 'none'
                   }}
-                  className="relative bg-gradient-to-br from-yellow-900 to-amber-900 rounded-xl overflow-hidden border-2 transition-all duration-300"
+                  className="relative bg-gradient-to-br from-yellow-900 to-amber-900 rounded-xl overflow-hidden border-2 border-transparent transition-all duration-300"
                 >
                   <div className="absolute top-3 right-3 z-10 bg-yellow-400 p-2 rounded-lg shadow-lg"><Pin className="h-4 w-4 text-gray-900" /></div>
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -627,10 +627,10 @@ function ActiveMeetingContent({
                 <motion.div
                   animate={{
                     scale: localParticipant?.isSpeaking ? 1.02 : 1,
-                    borderColor: localParticipant?.isSpeaking ? '#FACC15' : 'transparent',
+                    borderColor: localParticipant?.isSpeaking ? '#FACC15' : 'rgba(250, 204, 21, 0)',
                     boxShadow: localParticipant?.isSpeaking ? '0 0 20px rgba(250, 204, 21, 0.4)' : 'none'
                   }}
-                  className="relative bg-gray-800 rounded-xl overflow-hidden border-2 transition-all duration-300"
+                  className="relative bg-gray-800 rounded-xl overflow-hidden border-2 border-transparent transition-all duration-300"
                 >
                   <div className="absolute inset-0 flex items-center justify-center">
                     {localCameraTrack?.publication?.isSubscribed ? (
@@ -668,10 +668,10 @@ function ActiveMeetingContent({
                       key={track.participant.identity + track.source}
                       animate={{
                         scale: isSpeaking ? 1.02 : 1,
-                        borderColor: isSpeaking ? '#FACC15' : 'transparent',
+                        borderColor: isSpeaking ? '#FACC15' : 'rgba(250, 204, 21, 0)',
                         boxShadow: isSpeaking ? '0 0 20px rgba(250, 204, 21, 0.4)' : 'none'
                       }}
-                      className="relative bg-gray-800 rounded-xl overflow-hidden border-2 transition-all duration-300"
+                      className="relative bg-gray-800 rounded-xl overflow-hidden border-2 border-transparent transition-all duration-300"
                     >
                       <div className="absolute inset-0 flex items-center justify-center">
                         <VideoTrack
