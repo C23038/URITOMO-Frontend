@@ -119,6 +119,9 @@ export interface FriendRequest {
   sender: FriendRequestSender;
   status: 'pending' | 'accepted' | 'rejected';
   created_at: string;
+  type?: 'friend_request' | 'room_invite';
+  room_id?: string;
+  room_name?: string;
 }
 
 export interface SendFriendRequestPayload {

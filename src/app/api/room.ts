@@ -17,4 +17,20 @@ export const roomApi = {
     addMember: async (roomId: string, email: string): Promise<AddRoomMemberResponse> => {
         return apiClient.post(`/rooms/${roomId}/members`, { email });
     },
+
+    /**
+     * 룸 초대를 수락합니다.
+     * POST /rooms/invite/{invite_id}/accept
+     */
+    acceptInvite: async (inviteId: string): Promise<{ message: string; room_id: string }> => {
+        return apiClient.post(`/rooms/invite/${inviteId}/accept`, {});
+    },
+
+    /**
+     * 룸 초대를 거절합니다.
+     * POST /rooms/invite/{invite_id}/reject
+     */
+    rejectInvite: async (inviteId: string): Promise<{ message: string }> => {
+        return apiClient.post(`/rooms/invite/${inviteId}/reject`, {});
+    },
 };
