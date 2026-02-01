@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { ProfileSettingsModal, SystemSettingsModal } from '../components/SettingsModals';
 import { userApi } from '../api/user';
+import { roomApi } from '../api/room';
 import { MainDataResponse, FriendRequest } from '../api/types';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -323,17 +324,20 @@ export function Home() {
     setProcessingRequestId(request.request_id);
 
     try {
-      const response = await userApi.acceptFriendRequest(request.request_id);
-
       if (request.type === 'room_invite') {
+        // Use roomApi for room invites
+        await roomApi.acceptInvite(request.request_id);
+
         toast.success(t('roomInviteAccepted') || 'Joined room');
-        // If room_id is present, navigate or refresh room list
         if (request.room_id) {
           navigate(`/meeting/${request.room_id}`);
         } else {
           window.dispatchEvent(new Event('rooms-updated'));
         }
       } else {
+        // Use userApi for friend requests
+        const response = await userApi.acceptFriendRequest(request.request_id);
+
         // Add the new friend to contacts
         const newContact: Contact = {
           id: response.friend.id,
@@ -358,8 +362,8 @@ export function Home() {
       setPendingRequests(prev => prev.filter(r => r.request_id !== request.request_id));
 
     } catch (error) {
-      console.error('Failed to accept friend request:', error);
-      toast.error(t('friendAddFailed'));
+      console.error('Failed to accept request:', error);
+      toast.error(t('actionFailed') || 'Action failed');
     } finally {
       setProcessingRequestId(null);
     }
@@ -369,19 +373,23 @@ export function Home() {
     setProcessingRequestId(request.request_id);
 
     try {
-      await userApi.rejectFriendRequest(request.request_id);
+      if (request.type === 'room_invite') {
+        await roomApi.rejectInvite(request.request_id);
+      } else {
+        await userApi.rejectFriendRequest(request.request_id);
+      }
 
-      // Remove from pending requests
       setPendingRequests(prev => prev.filter(r => r.request_id !== request.request_id));
-
-      toast.success(t('friendRequestRejected'));
+      toast.info(t('requestRejected') || 'Request rejected');
     } catch (error) {
-      console.error('Failed to reject friend request:', error);
-      toast.error(t('friendAddFailed'));
+      console.error('Failed to reject request:', error);
+      toast.error(t('actionFailed') || 'Action failed');
     } finally {
       setProcessingRequestId(null);
     }
   };
+
+
 
   if (isLoading) {
     return (
