@@ -124,7 +124,6 @@ export function MeetingRoom() {
 
   // Add Member Modal State
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [newMemberEmail, setNewMemberEmail] = useState('');
   const [isAddingMember, setIsAddingMember] = useState(false);
 
   const handleJoinMeeting = () => {
@@ -143,17 +142,14 @@ export function MeetingRoom() {
   };
 
   // Handle Add Member
-  const handleAddMember = async (emailOverride?: string) => {
-    // If called from button click (event object) or empty, use state
-    const targetEmail = (typeof emailOverride === 'string' ? emailOverride : newMemberEmail);
-
-    if (!targetEmail.trim()) {
+  const handleAddMember = async (email: string) => {
+    if (!email.trim()) {
       toast.error(t('enterEmail'));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(targetEmail)) {
+    if (!emailRegex.test(email)) {
       toast.error(t('validEmail'));
       return;
     }
@@ -166,29 +162,15 @@ export function MeetingRoom() {
     setIsAddingMember(true);
 
     try {
-      const result = await roomApi.addMember(id, targetEmail);
+      const result = await roomApi.addMember(id, email);
 
-      // Add new member to participants list
-      const newParticipant: Participant = {
-        id: result.id,
-        name: result.name,
-        isOnline: false,
-        locale: result.locale,
-      };
-
-      setParticipants([...participants, newParticipant]);
-
-      if (roomDetail) {
-        setRoomDetail({ ...roomDetail, participant_count: roomDetail.participant_count + 1 });
-      }
-
-      toast.success(t('memberAdded'), {
-        description: `${result.name} (${result.locale})`,
+      // result is now InviteMemberResponse { message, invite_id, status }
+      toast.success(t('invitationSent') || 'Invitation sent successfully', {
+        description: t('invitationSentDesc') || 'User will join after accepting the invitation.',
         duration: 4000,
       });
 
       setShowAddMemberModal(false);
-      setNewMemberEmail('');
     } catch (error: any) {
       console.error('Failed to add member:', error);
 
@@ -1004,65 +986,26 @@ export function MeetingRoom() {
             </div>
 
             <div className="p-6 overflow-y-auto flex-1">
-              <div className="mb-4">
-                <label htmlFor="member-email" className="text-sm font-semibold text-gray-700 block mb-2">
-                  {t('email') || 'メールアドレスで招待'}
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    id="member-email"
-                    type="email"
-                    value={newMemberEmail}
-                    onChange={(e) => setNewMemberEmail(e.target.value)}
-                    placeholder="member@example.com"
-                    className="flex-1"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && !isAddingMember) {
-                        handleAddMember();
-                      }
-                    }}
-                  />
-                  <Button
-                    onClick={() => handleAddMember()}
-                    disabled={!newMemberEmail.trim() || isAddingMember}
-                    className="bg-gray-900 text-white"
-                  >
-                    {isAddingMember ? '...' : <Plus className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">
-                    Or select from contacts
-                  </span>
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('contacts')}</h3>
                 {friends.length === 0 ? (
-                  <p className="text-center text-gray-500 py-4 text-sm">
-                    {t('noContacts') || '連絡先がありません'}
-                  </p>
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 text-sm mb-2">
+                      {t('noContacts') || '連絡先がありません'}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {t('addFriendsFirst') || 'ホーム画面から友達を追加してください'}
+                    </p>
+                  </div>
                 ) : (
                   friends.map((friend) => {
-                    const isAlreadyInRoom = participants.some(p => p.id === friend.id || p.name === friend.friend_name); // Simple check
+                    const friendName = friend.friend_name || friend.email || 'Unknown';
+                    const isAlreadyInRoom = participants.some(p => p.id === friend.id || (p.name && friendName && p.name === friendName));
 
                     return (
                       <button
                         key={friend.id}
                         onClick={() => {
-                          setNewMemberEmail(friend.email);
-                          // Optionally auto-submit or just fill
-                          // internal handleAddMember uses newMemberEmail state
-                          // using a timeout to allow state update if we want auto-submit, 
-                          // but manually clicking add is safer or we can pass email to a param-based add function.
-                          // Let's call a modified add handler.
                           handleAddMember(friend.email);
                         }}
                         disabled={isAlreadyInRoom || isAddingMember}
@@ -1073,11 +1016,11 @@ export function MeetingRoom() {
                           }`}
                       >
                         <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 text-yellow-700 font-bold">
-                          {friend.friend_name.charAt(0)}
+                          {friendName.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-gray-900 truncate">
-                            {friend.friend_name}
+                            {friendName}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
                             {friend.email}
@@ -1097,7 +1040,6 @@ export function MeetingRoom() {
               <Button
                 onClick={() => {
                   setShowAddMemberModal(false);
-                  setNewMemberEmail('');
                 }}
                 variant="outline"
               >
