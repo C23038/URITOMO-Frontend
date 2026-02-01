@@ -325,28 +325,38 @@ export function Home() {
     try {
       const response = await userApi.acceptFriendRequest(request.request_id);
 
-      // Add the new friend to contacts
-      const newContact: Contact = {
-        id: response.friend.id,
-        name: response.friend.friend_name || (response.friend as any).name,
-        email: response.friend.email,
-        status: 'online',
-      };
+      if (request.type === 'room_invite') {
+        toast.success(t('roomInviteAccepted') || 'Joined room');
+        // If room_id is present, navigate or refresh room list
+        if (request.room_id) {
+          navigate(`/meeting/${request.room_id}`);
+        } else {
+          window.dispatchEvent(new Event('rooms-updated'));
+        }
+      } else {
+        // Add the new friend to contacts
+        const newContact: Contact = {
+          id: response.friend.id,
+          name: response.friend.friend_name || (response.friend as any).name,
+          email: response.friend.email,
+          status: 'online',
+        };
 
-      const updatedContacts = [...contacts, newContact];
-      setContacts(updatedContacts);
-      localStorage.setItem('uri-tomo-contacts', JSON.stringify(updatedContacts));
+        const updatedContacts = [...contacts, newContact];
+        setContacts(updatedContacts);
+        localStorage.setItem('uri-tomo-contacts', JSON.stringify(updatedContacts));
+
+        window.dispatchEvent(new Event('contacts-updated')); // Dispatch event
+
+        toast.success(t('friendRequestAccepted'), {
+          description: `${request.sender.name}${t('friendRequestAccepted')}`,
+          duration: 3000,
+        });
+      }
 
       // Remove from pending requests
       setPendingRequests(prev => prev.filter(r => r.request_id !== request.request_id));
 
-      // Dispatch event for other components
-      window.dispatchEvent(new Event('contacts-updated'));
-
-      toast.success(t('friendRequestAccepted'), {
-        description: `${request.sender.name}${t('friendRequestAccepted')}`,
-        duration: 3000,
-      });
     } catch (error) {
       console.error('Failed to accept friend request:', error);
       toast.error(t('friendAddFailed'));
@@ -442,8 +452,16 @@ export function Home() {
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-900 truncate">{request.sender.name}</p>
-                            <p className="text-sm text-gray-500 truncate">{request.sender.email}</p>
+                            <p className="font-semibold text-gray-900 truncate">
+                              {request.type === 'room_invite'
+                                ? (t('invitedToRoom', { user: request.sender.name, room: request.room_name || 'Room' }) || `${request.sender.name} invited you to ${request.room_name || 'Room'}`)
+                                : request.sender.name}
+                            </p>
+                            <p className="text-sm text-gray-500 truncate">
+                              {request.type === 'room_invite'
+                                ? (t('clickToJoin') || 'Click accept to join')
+                                : request.sender.email}
+                            </p>
 
                             {/* Action Buttons */}
                             <div className="flex gap-2 mt-3">
