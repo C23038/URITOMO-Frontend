@@ -618,19 +618,11 @@ function ActiveMeetingContent({
         },
         ...participants.filter(p => !p.isLocal).map(p => ({
           id: p.sid,
-          name: p.identity || 'Unknown',
+          name: p.name || p.identity || 'Unknown',
           language: 'unknown',
         })),
       ],
-      translationLog: translationLogs.map(log => ({
-        id: log.id,
-        speaker: log.speaker,
-        originalText: log.originalText,
-        translatedText: log.translatedText,
-        originalLang: log.originalLang === 'ja' ? '🇯🇵 日本語' : '🇰🇷 한국어',
-        translatedLang: log.originalLang === 'ja' ? '🇰🇷 한국어' : '🇯🇵 日本語',
-        timestamp: log.timestamp.toISOString(),
-      })),
+
       chatMessages: chatMessages.map(msg => ({
         id: msg.id,
         userName: msg.sender,
@@ -1350,12 +1342,12 @@ function ActiveMeetingContent({
                               className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
                             >
                               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white font-bold">
-                                {(participant.identity || '?').charAt(0).toUpperCase()}
+                                {(participant.name || participant.identity || '?').charAt(0).toUpperCase()}
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-semibold text-gray-900">
-                                    {participant.identity || 'Unknown'}
+                                    {participant.name || participant.identity || 'Unknown'}
                                   </span>
                                   <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">
                                     {t('remote')}

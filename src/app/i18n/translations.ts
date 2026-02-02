@@ -235,6 +235,10 @@ export const translations: Record<string, Record<Language, string>> = {
     friendAddFailed: { ja: '友達の追加に失敗しました', ko: '친구 추가에 실패했습니다', en: 'Failed to add friend' },
 
     // Friend Request System
+    invitedToRoom: { ja: '{user}さんが「{room}」に招待しました', ko: '{user}님이 "{room}"에 초대했습니다', en: '{user} invited you to "{room}"' },
+    clickToJoin: { ja: '承認して参加する', ko: '수락하고 참여하기', en: 'Click accept to join' },
+    roomInviteAccepted: { ja: 'ルームに参加しました', ko: '룸에 참여했습니다', en: 'Joined room' },
+    noContacts: { ja: '連絡先がありません', ko: '연락처가 없습니다', en: 'No contacts' },
     friendRequestSent: { ja: '友達リクエストを送信しました', ko: '친구 요청을 보냈습니다', en: 'Friend request sent' },
     friendRequestSentDesc: { ja: '相手が承認すると友達リストに表示されます。', ko: '상대방이 수락하면 친구 목록에 표시됩니다.', en: 'They will appear in your friends list once accepted.' },
     friendRequestAccepted: { ja: 'が友達に追加されました', ko: '님이 친구로 추가되었습니다', en: ' has been added as a friend' },
