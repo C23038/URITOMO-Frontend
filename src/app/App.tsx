@@ -34,12 +34,16 @@ export default function App() {
   const handleLogin = (email: string) => {
     localStorage.setItem("uri-tomo-user", email);
     sessionStorage.setItem("uri-tomo-session-active", "true");
+    // 로그인 시 항상 연락처 화면(홈)으로 시작
+    window.location.hash = '#/';
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("uri-tomo-user");
     sessionStorage.removeItem("uri-tomo-session-active");
+    // 로그아웃 시 경로 초기화
+    window.location.hash = '#/';
     setIsLoggedIn(false);
   };
 
