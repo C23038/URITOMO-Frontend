@@ -221,11 +221,11 @@ export const translations: Record<string, Record<Language, string>> = {
 
     // Popups & Errors (General)
     memberAdded: { ja: 'メンバーが追加されました', ko: '멤버가 추가되었습니다', en: 'Member added' },
-    emailNotFound: { ja: 'そのメールアドレスのユーザーが見つかりませんでした', ko: '해당 이메일의 사용자를 찾을 수 없습니다', en: 'User with this email not found' },
-    roomNotFound: { ja: 'ルームが見つかりませんでした', ko: '룸을 찾을 수 없습니다', en: 'Room not found' },
-    notFound: { ja: 'ユーザーまたはルームが見つかりませんでした', ko: '사용자 또는 룸을 찾을 수 없습니다', en: 'User or Room not found' },
-    memberAlreadyExists: { ja: 'このメンバーはすでにルームに存在します', ko: '이 멤버는 이미 룸에 존재합니다', en: 'Member already exists in room' },
-    noPermission: { ja: '権限がありません', ko: '권한이 없습니다', en: 'No permission' },
+    emailNotFound: { ja: 'このメールアドレスのユーザーは見つかりませんでした', ko: '해당 이메일의 사용자를 찾을 수 없어요', en: 'User with this email not found' },
+    roomNotFound: { ja: 'ルームが見つかりませんでした', ko: '룸을 찾을 수 없어요', en: 'Room not found' },
+    notFound: { ja: 'ユーザーまたはルームが見つかりませんでした', ko: '사용자 또는 룸을 찾을 수 없어요', en: 'User or room not found' },
+    memberAlreadyExists: { ja: 'このメンバーは既にルームに参加しています', ko: '이미 룸에 참여 중인 멤버예요', en: 'Member already in this room' },
+    noPermission: { ja: 'この操作を行う権限がありません', ko: '권한이 없어요', en: 'No permission' },
     memberAddFailed: { ja: 'メンバーの追加に失敗しました', ko: '멤버 추가에 실패했습니다', en: 'Failed to add member' },
     roomLoadError: { ja: 'ルーム情報の読み込みに失敗しました', ko: '룸 정보를 불러오는데 실패했습니다', en: 'Failed to load room details' },
     roomSettings: { ja: 'ルーム設定', ko: '룸 설정', en: 'Room Settings' },
@@ -235,20 +235,22 @@ export const translations: Record<string, Record<Language, string>> = {
     friendAddFailed: { ja: '友達の追加に失敗しました', ko: '친구 추가에 실패했습니다', en: 'Failed to add friend' },
 
     // Friend Request System
-    invitedToRoom: { ja: '{user}さんが「{room}」に招待しました', ko: '{user}님이 "{room}"에 초대했습니다', en: '{user} invited you to "{room}"' },
-    clickToJoin: { ja: '承認して参加する', ko: '수락하고 참여하기', en: 'Click accept to join' },
-    roomInviteAccepted: { ja: 'ルームに参加しました', ko: '룸에 참여했습니다', en: 'Joined room' },
+    invitedToRoom: { ja: '{user}さんから「{room}」への招待が届きました', ko: '{user}님이 "{room}"로 초대했어요', en: '{user} invited you to "{room}"' },
+    clickToJoin: { ja: '承認すると参加できます', ko: '수락하면 바로 참여할 수 있어요', en: 'Accept to join the room' },
+    roomInviteAccepted: { ja: 'ルームに参加しました！', ko: '룸에 참여했어요!', en: 'Successfully joined the room!' },
+    invitationSent: { ja: '招待を送信しました！', ko: '초대를 보냈어요!', en: 'Invitation sent!' },
+    invitationSentDesc: { ja: '相手が承認すると、このルームに参加できます', ko: '상대방이 수락하면 이 룸에 참여할 수 있어요', en: 'They can join this room after accepting' },
     noContacts: { ja: '連絡先がありません', ko: '연락처가 없습니다', en: 'No contacts' },
-    friendRequestSent: { ja: '友達リクエストを送信しました', ko: '친구 요청을 보냈습니다', en: 'Friend request sent' },
-    friendRequestSentDesc: { ja: '相手が承認すると友達リストに表示されます。', ko: '상대방이 수락하면 친구 목록에 표시됩니다.', en: 'They will appear in your friends list once accepted.' },
-    friendRequestAccepted: { ja: 'が友達に追加されました', ko: '님이 친구로 추가되었습니다', en: ' has been added as a friend' },
-    friendRequestRejected: { ja: '友達リクエストを拒否しました', ko: '친구 요청을 거절했습니다', en: 'Friend request rejected' },
-    acceptRequest: { ja: '承認', ko: '수락', en: 'Accept' },
-    rejectRequest: { ja: '拒否', ko: '거절', en: 'Reject' },
+    friendRequestSent: { ja: '友達リクエストを送信しました！', ko: '친구 요청을 보냈어요!', en: 'Friend request sent!' },
+    friendRequestSentDesc: { ja: '相手が承認すると友達リストに追加されます', ko: '상대방이 수락하면 친구 목록에 추가돼요', en: 'They will appear in your friends list once accepted' },
+    friendRequestAccepted: { ja: 'が友達に追加されました！', ko: '님이 친구로 추가되었어요!', en: ' has been added as a friend!' },
+    friendRequestRejected: { ja: 'リクエストを拒否しました', ko: '요청을 거절했어요', en: 'Request rejected' },
+    acceptRequest: { ja: '承認する', ko: '수락', en: 'Accept' },
+    rejectRequest: { ja: '拒否する', ko: '거절', en: 'Reject' },
     friendRequests: { ja: '友達リクエスト', ko: '친구 요청', en: 'Friend Requests' },
-    noRequests: { ja: '受信したリクエストがありません', ko: '받은 요청이 없습니다', en: 'No pending requests' },
-    accepting: { ja: '承認中...', ko: '수락 중...', en: 'Accepting...' },
-    rejecting: { ja: '拒否中...', ko: '거절 중...', en: 'Rejecting...' },
+    noRequests: { ja: '新しいリクエストはありません', ko: '새로운 요청이 없어요', en: 'No new requests' },
+    accepting: { ja: '承認しています...', ko: '수락하는 중...', en: 'Accepting...' },
+    rejecting: { ja: '拒否しています...', ko: '거절하는 중...', en: 'Rejecting...' },
 
     updateProfileFailed: { ja: 'プロフィールの更新に失敗しました', ko: '프로필 업데이트에 실패했습니다', en: 'Failed to update profile' },
 
@@ -260,7 +262,9 @@ export const translations: Record<string, Record<Language, string>> = {
     unknownError: { ja: '不明なエラーが発生しました。', ko: '알 수 없는 오류가 발생했습니다.', en: 'Unknown error occurred.' },
     backendConnectionError: { ja: 'バックエンドサーバーに接続できません。\nサーバーが実行されているか確認してください。', ko: '백엔드 서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인해주세요.', en: 'Cannot connect to backend server.\nPlease check if server is running.' },
     networkError: { ja: 'サーバーに接続できません。ネットワークを確認してください。', ko: '서버와 연결할 수 없습니다. 네트워크를 확인해주세요.', en: 'Cannot connect to server. Check network.' },
-    requestSetupError: { ja: 'リクエストの設定中にエラーが発生しました。', ko: '요청 설정 중 오류가 발생했습니다.', en: 'Error setting up request.' },
+    requestSetupError: { ja: 'リクエストの設定中にエラーが発生しました', ko: '요청 설정 중 오류가 발생했어요', en: 'Error setting up request' },
+    actionFailed: { ja: '処理に失敗しました', ko: '처리에 실패했어요', en: 'Action failed' },
+    requestRejected: { ja: 'リクエストを拒否しました', ko: '요청을 거절했어요', en: 'Request rejected' },
 };
 
 export const getTranslation = (key: string): string => {
