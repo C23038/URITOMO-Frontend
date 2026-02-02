@@ -47,7 +47,7 @@ export function TranslationLog({ entries, summary, onClose }: TranslationLogProp
               Log
             </h4>
             <div className="space-y-4">
-              {entries.map((entry, index) => (
+              {[...entries].reverse().map((entry, index) => (
                 <div
                   key={entry.id}
                   className="bg-white rounded-xl p-4 space-y-3 border-2 border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-yellow-200"
@@ -55,7 +55,7 @@ export function TranslationLog({ entries, summary, onClose }: TranslationLogProp
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-yellow-700 flex items-center gap-2">
                       <span className="bg-gradient-to-r from-yellow-400 to-amber-400 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs shadow-md">
-                        {index + 1}
+                        {entries.length - index}
                       </span>
                       {entry.speaker}
                     </span>
